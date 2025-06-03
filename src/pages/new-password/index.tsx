@@ -23,10 +23,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
-import watney from '@/assets/imges/home/watney.jpg';
-import logo from '@/assets/imges/home/logo.png';
 
-import { Link } from 'react-router-dom';
+
 import { z } from 'zod';
 
 const formSchema = z.object({
@@ -83,12 +81,22 @@ export default function NewPassword() {
   // }, []);
 
   return (
-    <div className="relative h-screen flex-col items-center justify-center">
-      {/* Right Side (Form) */}
-      <div className="flex h-full items-center bg-gray-100  p-4 sm:p-16">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[680px] py-8 ">
+    <div
+      className="relative flex h-screen w-full items-start justify-start"
+      style={{
+        backgroundImage: "url('/login.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
+      {/* Overlay */}
+      <div className="absolute inset-0 z-0 bg-black/10 backdrop-blur-none" />
+
+      {/* Left Aligned Form */}
+      <div className="relative z-10 flex h-full items-center justify-center p-4 sm:p-16">
+        <div className="flex w-[480px] flex-col space-y-8 py-8">
           {dialogOpen ? (
-            <Card className="space-y-6 py-8 px-6 text-center">
+            <Card className="space-y-6 border border-gray-200 bg-white px-6 py-8 text-center backdrop-blur-md">
               <h1 className="text-2xl font-semibold tracking-tight">
                 Password Changed Successfully
               </h1>
@@ -98,22 +106,14 @@ export default function NewPassword() {
               </p>
               <Button
                 onClick={() => router.push('/')}
-                className="w-full hover:bg-watney/90 bg-watney text-white hover:text-white"
+                className="w-full bg-theme text-white hover:bg-theme/90"
               >
                 Login Now
               </Button>
             </Card>
           ) : (
-            <Card className="flex w-full flex-col justify-center space-y-4 border border-gray-200 p-4 ">
-              <div className="flex  flex-col space-y-2 text-center">
-                {/* <div className="flex flex-row items-center gap-4  text-center">
-                  <Link to="/">
-                    <img src={logo} alt="logo" className="w-12 " />
-                  </Link>
-
-                  <div className="h-12 border"></div>
-                  <h1 className='font-semibold text-2xl'>Watney College</h1>
-                </div> */}
+            <Card className="flex w-full flex-col justify-center space-y-4 border border-gray-200 bg-white/80 p-4 backdrop-blur-md">
+              <div className="flex flex-col space-y-2 text-center">
                 <h1 className="text-2xl font-semibold tracking-tight">
                   Enter New Password
                 </h1>
@@ -144,7 +144,7 @@ export default function NewPassword() {
                               placeholder="Enter your password..."
                               disabled={loading || fieldsDisabled}
                               {...field}
-                              className="w-full"
+                              className="w-full border-gray-400"
                             />
                           </FormControl>
                           <FormMessage />
@@ -164,7 +164,7 @@ export default function NewPassword() {
                               placeholder="Confirm your password..."
                               disabled={loading || fieldsDisabled}
                               {...field}
-                              className="w-full"
+                              className="w-full border-gray-400"
                             />
                           </FormControl>
                           <FormMessage />
@@ -174,7 +174,7 @@ export default function NewPassword() {
 
                     <Button
                       disabled={loading || fieldsDisabled}
-                      className="w-full bg-watney text-white hover:bg-watney/90"
+                      className="w-full bg-theme text-white hover:bg-theme/90"
                       type="submit"
                     >
                       Submit
@@ -188,4 +188,6 @@ export default function NewPassword() {
       </div>
     </div>
   );
+  
+  
 }

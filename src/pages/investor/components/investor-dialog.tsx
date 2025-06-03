@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,28 +13,37 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import moment from 'moment';
 
-// Dynamic schema based on mode (create vs edit)
-const getAgentSchema = (isEdit: boolean) =>
-  z.object({
-    name: z.string().min(1, 'Name is required'),
-    email: z.string().email('Invalid email'),
-    password: isEdit
-      ? z.string().optional()
-      : z.string().min(1, 'Password is required'),
-    dateOfBirth: z.string().optional(),
-    address: z.string().optional()
-  });
+// Schemas
+const createInvestorSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email'),
+  password: z.string().min(1, 'Password is required'),
+  dateOfBirth: z.string().optional(),
+  address: z.string().optional()
+});
 
-export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
-  const isEdit = Boolean(initialData);
+const editInvestorSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email'),
+  password: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  address: z.string().optional()
+});
+
+export function InvestorDialog({ open, onOpenChange, onSubmit, initialData }) {
+  const schema = useMemo(
+    () => (initialData ? editInvestorSchema : createInvestorSchema),
+    [initialData]
+  );
 
   const {
     register,
     handleSubmit,
+    setValue,
     reset,
     formState: { errors }
   } = useForm({
-    resolver: zodResolver(getAgentSchema(isEdit)),
+    resolver: zodResolver(schema),
     defaultValues: {
       name: '',
       email: '',
@@ -49,14 +58,14 @@ export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
       reset({
         name: initialData.name || '',
         email: initialData.email || '',
-        password: '', // don't prefill password
+        password: '',
         dateOfBirth: initialData.dateOfBirth
           ? moment(initialData.dateOfBirth).format('YYYY-MM-DD')
           : '',
         address: initialData.address || ''
       });
     } else {
-      reset(); // clear form for new agent
+      reset();
     }
   }, [initialData, reset]);
 
@@ -70,12 +79,12 @@ export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Edit' : 'Add'} Agent</DialogTitle>
+          <DialogTitle>{initialData ? 'Edit' : 'Add'} Investor</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">
-              Agent Name <span className="text-red-500">*</span>
+              Investor Name <span className="text-red-500">*</span>
             </Label>
             <Input id="name" {...register('name')} />
             {errors.name && (
@@ -105,7 +114,7 @@ export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
 
           <div className="space-y-2">
             <Label htmlFor="password">
-              Password{!isEdit && <span className="text-red-500"> *</span>}
+              Password{!initialData && <span className="text-red-500"> *</span>}
             </Label>
             <Input id="password" type="password" {...register('password')} />
             {errors.password && (

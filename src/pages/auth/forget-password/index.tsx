@@ -49,72 +49,71 @@ export default function ForgotPassword() {
   };
 
   return (
-    <>
-      <div className="grid h-screen bg-gray-100 lg:px-0">
-        <div className="flex  h-full items-center justify-center p-4 lg:p-8">
-          <div className="mx-auto flex w-full flex-col justify-centers space-y-4 sm:w-[680px] sm:p-8">
-            <Card className="flex w-full flex-col justify-center space-y-4 border border-gray-200 p-4 ">
-              <div className="mb-2 flex flex-col space-y-2 text-left">
-                <div className="flex flex-row items-center gap-4 space-y-2 text-center">
-                  <Link to="/">
-                    <img src={logo} alt="logo" className="w-12 " />
-                  </Link>
-                  <div className="h-12 border"></div>
-                  <h1 className="text-2xl font-semibold tracking-tight">
-                    Forget Password
-                  </h1>
-                </div>
-                <p className="text-sm text-muted">
-                  Enter your registered email and <br /> we will send you a link
-                  to reset your password.
-                </p>
-                <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="w-full space-y-4"
-                  >
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="email"
-                              placeholder="Enter your email..."
-                              disabled={loading}
-                              {...field}
-                              className="w-full"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+    <div
+      className="relative grid h-screen w-full bg-gray-100 lg:px-0"
+      style={{
+        backgroundImage: "url('/login.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
+      {/* Blur Overlay */}
+      <div className="absolute inset-0 z-0 bg-black/10 backdrop-blur-none" />
 
-                    <Button
-                      disabled={loading}
-                      className="ml-auto w-full bg-watney text-white hover:bg-watney"
-                      type="submit"
-                    >
-                      Reset Password
-                    </Button>
-                  </form>
-                </Form>
+      {/* Content (Left Aligned) */}
+      <div className="relative z-10 flex h-full w-full items-center justify-start p-4 lg:p-8">
+        <div className="flex w-full max-w-xl flex-col justify-center space-y-4 sm:p-8">
+          <Card className="flex w-full flex-col justify-center space-y-4 rounded-xl border border-gray-200 bg-white p-4 backdrop-blur-md">
+            <div className="mb-2 flex flex-col space-y-2 text-left">
+              <div className="flex flex-row items-center gap-4">
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Forget Password
+                </h1>
               </div>
-              {/* <ForgotForm /> */}
-              <p className="mt-4 px-8 text-center text-sm text-muted">
-                Back to{'  '}
-                <Link to="/login" className="underline underline-offset-4">
-                  Sign In
-                </Link>
-                .
+              <p className="text-sm text-muted">
+                Enter your registered email and <br /> we will send you a link
+                to reset your password.
               </p>
-            </Card>
-          </div>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="w-full space-y-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="Enter your email..."
+                            disabled={loading}
+                            {...field}
+                            className="w-full border-gray-400"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    disabled={loading}
+                    className="ml-auto w-full bg-theme text-white hover:bg-theme"
+                    type="submit"
+                  >
+                    Reset Password
+                  </Button>
+                </form>
+              </Form>
+            </div>
+          </Card>
         </div>
       </div>
-    </>
+    </div>
   );
+  
+  
 }

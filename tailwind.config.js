@@ -24,7 +24,8 @@ module.exports = {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         primary: 'hsl(var(--primary))',
-         watney: 'hsl(var(--watney))',
+        watney: 'hsl(var(--watney))',
+         theme:'hsl(var(--theme))',
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))'

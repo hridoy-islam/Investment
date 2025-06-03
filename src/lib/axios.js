@@ -12,7 +12,7 @@ const axiosInstance = axios.create({
 // Request interceptor: Attach access token to all outgoing requests
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = JSON.parse(localStorage.getItem('watney')); // Access token
+    const token = JSON.parse(localStorage.getItem('investment')); // Access token
    
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
@@ -34,7 +34,7 @@ const refreshToken = async () => {
     const accessToken = response?.data?.data?.accessToken;
     
     if (accessToken) {
-      localStorage.setItem('watney', JSON.stringify(accessToken));
+      localStorage.setItem('investment', JSON.stringify(accessToken));
       return accessToken;
     
     }
@@ -42,7 +42,7 @@ const refreshToken = async () => {
     return null;
   } catch (error) {
     // Token refresh failed — clean up and logout
-    localStorage.removeItem('watney');
+    localStorage.removeItem('investment');
     store.dispatch(logout());
     return null;
   }

@@ -167,7 +167,7 @@ export default function UserAuthForm() {
 
           <Button
             disabled={loading}
-            className="ml-auto h-12  w-full bg-watney text-white hover:bg-watney/90"
+            className="ml-auto h-12 text-lg font-semibold  w-full bg-theme text-white hover:bg-theme/90"
             type="submit"
           >
             Login
@@ -178,7 +178,7 @@ export default function UserAuthForm() {
       {/* <p className="text-sm">
         Don't have account? <span className='hover:underline'> <Link to="/signup">Signup</Link></span>{' '}
       </p> */}
-      <p className="text-sm text-right">
+      <p className="text-sm text-right hover:underline">
         <Link to="/forgot-password">Forgot Password?</Link>
       </p>
 

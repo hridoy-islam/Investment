@@ -36,27 +36,15 @@ interface SignUpFormProps extends HTMLAttributes<HTMLDivElement> {}
 
 const signUpSchema = z
   .object({
-    title: z.string().min(1, 'Title is required'),
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required'),
-    initial: z.string().optional(),
+    name: z.string().min(1, 'Title is required'),
+
     email: z.string().email('Invalid email address'),
     password: z.string().min(6, 'Password must be at least 8 characters'),
     phone: z.string().min(7, 'Phone number is required'),
-    nationality: z.string().min(1, 'Nationality is required'),
-    dateOfBirth: z.string().min(1, 'Date of birth is required'),
-    role: z.string().min(1, 'Purpose of your visit is required'),
-    studentType: z.string().optional()
+
+    dateOfBirth: z.string().min(1, 'Date of birth is required')
   })
-  .superRefine((data, ctx) => {
-    if (data.role === 'student' && !data.studentType) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Student type is required for students',
-        path: ['studentType'] // points to the studentType field
-      });
-    }
-  });
+  
 
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
@@ -68,17 +56,11 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      title: '',
-      firstName: '',
-      lastName: '',
-      initial: '',
+      name: '',
       email: '',
       password: '',
       phone: '',
-      nationality: '',
-      dateOfBirth: '',
-      role: '',
-      studentType: ''
+      dateOfBirth: ''
     }
   });
 
@@ -86,16 +68,9 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
     try {
       const response = await axiosInstance.post('/auth/signup', {
         ...data,
-        name: `${data.title} ${data.firstName} ${data.initial} ${data.lastName}`,
+        name: data.name,
 
-        title: data.title,
-        firstName: data.firstName,
-        initial: data.initial,
-        lastName: data.lastName,
-        nationality: data.nationality,
-        dateOfBirth: data.dateOfBirth,
-        role: data.role,
-        studentType: data.studentType || undefined,
+        dateOfBirth: data.dateOfBirth
       });
 
       if (response?.data?.success) {
@@ -121,7 +96,6 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
     }
   };
 
-
   const selectedRole = useWatch({
     control: form.control,
     name: 'role'
@@ -131,83 +105,22 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
     <section>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 ">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {/* Title */}
+          <div className="grid grid-cols-1 gap-4 ">
+            {/* Full Name */}
             <FormField
               control={form.control}
-              name="title"
+              name="name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="block text-sm font-medium text-gray-700">
-                    Title <span className="text-red-500">*</span>
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select title" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {['Mr', 'Mrs', 'Miss', 'Ms', 'Dr'].map((item) => (
-                        <SelectItem key={item} value={item}>
-                          {item}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-xs text-red-600" />
-                </FormItem>
-              )}
-            />
-
-            {/* First Name */}
-            <FormField
-              control={form.control}
-              name="firstName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="block text-sm font-medium text-gray-700">
-                    First Name <span className="text-red-500">*</span>
+                    Full Name <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="John" {...field} />
-                  </FormControl>
-                  <FormMessage className="text-xs text-red-600" />
-                </FormItem>
-              )}
-            />
-
-            {/* Middle Name */}
-            <FormField
-              control={form.control}
-              name="initial"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="block text-sm font-medium text-gray-700">
-                    Middle Name
-                  </FormLabel>
-                  <FormControl>
-                    <Input placeholder="(Optional)" {...field} />
-                  </FormControl>
-                  <FormMessage className="text-xs text-red-600" />
-                </FormItem>
-              )}
-            />
-
-            {/* Last Name */}
-            <FormField
-              control={form.control}
-              name="lastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="block text-sm font-medium text-gray-700">
-                    Last Name <span className="text-red-500">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input placeholder="Doe" {...field} />
+                    <Input
+                      placeholder="Doe"
+                      {...field}
+                      className="border-gray-400"
+                    />
                   </FormControl>
                   <FormMessage className="text-xs text-red-600" />
                 </FormItem>
@@ -224,39 +137,12 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
                     Phone Number <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="+1234567890" {...field} />
+                    <Input
+                      placeholder="+1234567890"
+                      {...field}
+                      className="border-gray-400"
+                    />
                   </FormControl>
-                  <FormMessage className="text-xs text-red-600" />
-                </FormItem>
-              )}
-            />
-
-            {/* Nationality */}
-            <FormField
-              control={form.control}
-              name="nationality"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="block text-sm font-medium text-gray-700">
-                    Nationality <span className="text-red-500">*</span>
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select nationality" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {nationalities.map((nation, index) => (
-                        <SelectItem key={index} value={nation}>
-                          {nation}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                   <FormMessage className="text-xs text-red-600" />
                 </FormItem>
               )}
@@ -271,74 +157,14 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
                     Date of Birth <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input type="date" {...field} className="border-gray-400" />
                   </FormControl>
                   <FormMessage className="text-xs text-red-600" />
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="block text-sm font-medium text-gray-700">
-                    Please select the role that describes you
-                    <span className="text-red-500">*</span>
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an option" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="student">
-                        Course Registration
-                      </SelectItem>
-                      <SelectItem value="applicant">Job Application</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-xs text-red-600" />
-                </FormItem>
-              )}
-            />
-
-            {selectedRole === 'student' && (
-              <FormField
-                control={form.control}
-                name="studentType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="block text-sm font-medium text-gray-700">
-                      Student Type <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select student type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="eu">Home Student</SelectItem>
-                        <SelectItem value="international">Overseas</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-xs text-red-600" />
-                  </FormItem>
-                )}
-              />
-            )}
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-         
+          <div className="grid grid-cols-1 gap-4 ">
             {/* Email - Full width */}
             <FormField
               control={form.control}
@@ -353,6 +179,7 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
                       type="email"
                       placeholder="john.doe@example.com"
                       {...field}
+                      className="border-gray-400"
                     />
                   </FormControl>
                   <FormMessage className="text-xs text-red-600" />
@@ -374,6 +201,7 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
                         type={showPassword ? 'text' : 'password'}
                         placeholder="••••••••"
                         {...field}
+                        className="border-gray-400"
                       />
                     </FormControl>
                     <button
@@ -404,7 +232,7 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
           <div className="pt-4">
             <Button
               type="submit"
-              className="h-12 w-full rounded-md bg-watney font-medium text-white shadow-sm transition-colors hover:bg-watney/90"
+              className="h-12 w-full rounded-md bg-theme font-medium text-white shadow-sm transition-colors hover:bg-theme/90"
             >
               Create Account
             </Button>

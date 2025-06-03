@@ -21,7 +21,7 @@ export default function SignInPage() {
 
   return (
     <div
-      className="relative flex h-screen w-full items-center justify-center lg:px-0"
+      className="relative flex h-screen w-full items-center justify-start lg:px-0"
       style={{
         backgroundImage: "url('/login.jpg')",
         backgroundSize: 'cover',
@@ -29,17 +29,24 @@ export default function SignInPage() {
       }}
     >
       {/* Blur Overlay */}
-      <div className="absolute inset-0 z-0 bg-black/20 backdrop-blur-0" />
+      <div className="absolute inset-0 z-0 bg-black/10 backdrop-blur-0" />
 
-      {/* Content */}
-      <div className="relative z-10 flex h-full items-center  p-4 shadow-md lg:p-8">
-        <Card className="mx-auto flex w-full flex-col justify-center space-y-4 rounded-sm border border-gray-200 p-4 sm:w-[450px]">
-          <div className="flex flex-row items-center gap-4 space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight pb-4">
-             Investment 
+      {/* Content aligned left */}
+      <div className="relative z-10 flex h-full w-full items-center justify-start p-4 shadow-md lg:p-16">
+        <Card className="ml-0 flex w-full max-w-[450px] flex-col space-y-4 rounded-[30px] border border-gray-200 px-8 py-10">
+          <div className="flex w-full flex-row items-center justify-center gap-4 space-y-2 text-center">
+            <h1 className="pb-4 text-center text-2xl font-semibold tracking-tight">
+              Investment
             </h1>
           </div>
-          <h1 className="text-2xl text-center font-medium"><span className='font-bold'>Login</span> to you account</h1>
+          <div className="flex flex-col items-center gap-2">
+            <h1 className="text-center text-2xl font-medium">
+              <span className="font-bold">Welcome Back !</span>
+            </h1>
+            <h1 className="text-center text-xs">
+              Please fill in your Email and Password to Sign In.
+            </h1>
+          </div>
           <UserAuthForm />
         </Card>
       </div>

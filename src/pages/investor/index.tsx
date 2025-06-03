@@ -15,14 +15,14 @@ import { useToast } from "@/components/ui/use-toast";
 import { BlinkingDots } from "@/components/shared/blinking-dots";
 import { Input } from "@/components/ui/input"
 import { DataTablePagination } from "@/components/shared/data-table-pagination"
-import { CourseDialog } from "./components/course-dialog"
+import { InvestorDialog } from "./components/investor-dialog"
 import { useNavigate } from "react-router-dom"
 
-export default function CoursesPage() {
-  const [courses, setCourses] = useState<any>([])
+export default function InvestorPage() {
+  const [investors, setInvestors] = useState<any>([])
   const [initialLoading, setInitialLoading] = useState(true); 
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingCourse, setEditingCourse] = useState<any>()
+  const [editingInvestor, setEditingInvestor] = useState<any>()
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -34,14 +34,14 @@ export default function CoursesPage() {
     try {
       
       if (initialLoading) setInitialLoading(true);
-      const response = await axiosInstance.get(`/courses`, {
+      const response = await axiosInstance.get(`/users?role=investor`, {
         params: {
           page,
           limit: entriesPerPage,
           ...(searchTerm ? { searchTerm } : {}),
         },
       });
-      setCourses(response.data.data.result);
+      setInvestors(response.data.data.result);
       setTotalPages(response.data.data.meta.totalPage);
     } catch (error) {
       console.error("Error fetching institutions:", error);
@@ -53,42 +53,54 @@ export default function CoursesPage() {
 
   const handleSubmit = async (data) => {
     try {
+      // Create payload and remove empty password field if necessary
+      const payload = { ...data, role: 'investor' };
+   
+      if (payload.password === '') {
+        delete payload.password;
+      }
+
       let response;
-      if (editingCourse) {
-        response = await axiosInstance.patch(`/courses/${editingCourse?._id}`, data);
+
+      if (editingInvestor) {
+        // Remove password from update data regardless of value
+        
+        response = await axiosInstance.patch(
+          `/users/${editingInvestor?._id}`,
+          payload
+        );
       } else {
-        response = await axiosInstance.post(`/courses`, data);
+        response = await axiosInstance.post(`/auth/signup`, payload);
       }
 
       if (response.data && response.data.success === true) {
         toast({
-          title: response.data.message || "Record Updated successfully",
-          className: "bg-watney border-none text-white",
+          title: response.data.message || 'Investor created successfully',
+          className: 'bg-theme border-none text-white'
         });
       } else if (response.data && response.data.success === false) {
         toast({
-          title: response.data.message || "Operation failed",
-          className: "bg-red-500 border-none text-white",
+          title: response.data.message || 'Operation failed',
+          className: 'bg-red-500 border-none text-white'
         });
       } else {
         toast({
-          title: "Unexpected response. Please try again.",
-          className: "bg-red-500 border-none text-white",
+          title: 'Unexpected response. Please try again.',
+          className: 'bg-red-500 border-none text-white'
         });
       }
+
       // Refresh data
       fetchData(currentPage, entriesPerPage);
-      setEditingCourse(undefined) // Reset editing state
-
+      setEditingInvestor(undefined); // Reset editing state
     } catch (error) {
-      // Display an error toast if the request fails
       toast({
-        title:  "An error occurred. Please try again.",
-        className: "bg-red-500 border-none text-white",
+        title: 'An error occurred. Please try again.',
+        className: 'bg-red-500 border-none text-white'
       });
     }
   };
-
+  
 
   const handleSearch = () => {
     fetchData(currentPage, entriesPerPage, searchTerm); 
@@ -97,17 +109,17 @@ export default function CoursesPage() {
 
   const handleStatusChange = async (id, status) => {
     try {
-      const updatedStatus = status ? "1" : "0";
-      await axiosInstance.patch(`/courses/${id}`, { status: updatedStatus });
-      toast({ title: "Record updated successfully", className: "bg-watney border-none text-white", });
+      const updatedStatus = status ? "active" : "block";
+      await axiosInstance.patch(`/users/${id}`, { status: updatedStatus });
+      toast({ title: "Record updated successfully", className: "bg-theme border-none text-white", });
       fetchData(currentPage, entriesPerPage);
     } catch (error) {
       console.error("Error updating status:", error);
     }
   };
 
-  const handleEdit = (course) => {
-    setEditingCourse(course)
+  const handleEdit = (data) => {
+    setEditingInvestor(data)
     setDialogOpen(true)
   }
 
@@ -121,19 +133,19 @@ export default function CoursesPage() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex flex-row items-center gap-4">
-          <h1 className="text-2xl font-semibold">All Courses</h1>
+          <h1 className="text-2xl font-semibold">Investor List</h1>
           <div className="flex items-center space-x-4">
             <Input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by Course Name"
+              placeholder="Search by name, email"
               className="h-8 max-w-[400px]"
             />
             <Button
               onClick={handleSearch}
               size="sm"
-              className="min-w-[100px] border-none bg-watney text-white hover:bg-watney/90"
+              className="min-w-[100px] border-none bg-theme text-white hover:bg-theme/90"
             >
               Search
             </Button>
@@ -141,7 +153,7 @@ export default function CoursesPage() {
         </div>
         <div className="flex flex-row items-center gap-4">
           <Button
-            className="border-none bg-watney text-white hover:bg-watney/90"
+            className="border-none bg-theme text-white hover:bg-theme/90"
             size={'sm'}
             onClick={() => navigate('/dashboard')}
           >
@@ -149,12 +161,12 @@ export default function CoursesPage() {
             Back
           </Button>
           <Button
-            className="border-none bg-watney text-white hover:bg-watney/90"
+            className="border-none bg-theme text-white hover:bg-theme/90"
             size={'sm'}
             onClick={() => setDialogOpen(true)}
           >
             <Plus className="mr-2 h-4 w-4" />
-            New Course
+            New Investor
           </Button>
         </div>
       </div>
@@ -162,9 +174,9 @@ export default function CoursesPage() {
       <div className="rounded-md bg-white p-4 shadow-2xl">
         {initialLoading ? (
           <div className="flex justify-center py-6">
-            <BlinkingDots size="large" color="bg-watney" />
+            <BlinkingDots size="large" color="bg-theme" />
           </div>
-        ) : courses.length === 0 ? (
+        ) : investors.length === 0 ? (
           <div className="flex justify-center py-6 text-gray-500">
             No records found.
           </div>
@@ -172,20 +184,22 @@ export default function CoursesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Course Name</TableHead>
+                <TableHead>Investor Name</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead className="w-32 text-center">Status</TableHead>
                 <TableHead className="w-32 text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {courses.map((course) => (
-                <TableRow key={course._id}>
-                  <TableCell>{course.name}</TableCell>
+              {investors.map((investor) => (
+                <TableRow key={investor._id}>
+                  <TableCell>{investor.name}</TableCell>
+                  <TableCell>{investor.email}</TableCell>
                   <TableCell className="text-center">
                     <Switch
-                      checked={course.status == 1}
+                      checked={investor.status === 'active'}
                       onCheckedChange={(checked) =>
-                        handleStatusChange(course._id, checked)
+                        handleStatusChange(investor._id, checked)
                       }
                       className="mx-auto"
                     />
@@ -193,9 +207,9 @@ export default function CoursesPage() {
                   <TableCell className="text-center">
                     <Button
                       variant="ghost"
-                      className="border-none bg-watney text-white hover:bg-watney/90"
+                      className="border-none bg-theme text-white hover:bg-theme/90"
                       size="icon"
-                      onClick={() => handleEdit(course)}
+                      onClick={() => handleEdit(investor)}
                     >
                       <Pen className="h-4 w-4" />
                     </Button>
@@ -214,14 +228,14 @@ export default function CoursesPage() {
         />
       </div>
 
-      <CourseDialog
+      <InvestorDialog
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open);
-          if (!open) setEditingCourse(undefined);
+          if (!open) setEditingInvestor(undefined);
         }}
         onSubmit={handleSubmit}
-        initialData={editingCourse}
+        initialData={editingInvestor}
       />
     </div>
   );

@@ -6,7 +6,7 @@ import { useRouter } from '@/routes/hooks';
 import { jwtDecode } from 'jwt-decode';
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import watney from '@/assets/imges/home/watney.jpg';
+import theme from '@/assets/imges/home/theme.jpg';
 import logo from '@/assets/imges/home/logo.png';
 
 import { Link } from 'react-router-dom';
@@ -124,22 +124,28 @@ export default function Otp() {
   }, [isCooldownActive, resendCooldown]);
 
   return (
-    <div className="grid h-screen lg:px-0">
-      {/* Right Form Panel */}
-      <div className="flex h-full items-center justify-center bg-gray-100 p-4 lg:p-8">
+    <div
+      className="relative grid h-screen w-full lg:px-0"
+      style={{
+        backgroundImage: "url('/login.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
+      {/* Blur Overlay */}
+      <div className="absolute inset-0 z-0 bg-black/10 backdrop-blur-none" />
+
+      {/* OTP Form Panel - Left Aligned */}
+      <div className="relative z-10 flex h-full w-full items-center justify-start p-4 lg:p-8">
         <div className="w-full max-w-lg space-y-6">
-          <Card className="flex w-full flex-col rounded-sm justify-center space-y-4 border border-gray-200 p-6 ">
+          <Card className="flex w-full flex-col justify-center space-y-4 rounded-xl border border-gray-200 bg-white p-6 backdrop-blur-md">
             <div className="flex flex-col space-y-6 text-left">
-              <div className="flex flex-row items-center gap-4 space-y-2 text-center">
-                <Link to="/">
-                  <img src={logo} alt="logo" className="w-12 " />
-                </Link>
-                <div className="h-12 border"></div>
+              <div className="flex flex-row items-center gap-4 text-center">
                 <h1 className="text-2xl font-semibold tracking-tight">
-                Verification Code
+                  Verification Code
                 </h1>
               </div>
-              
+
               <p className="text-sm text-muted-foreground">
                 Enter the verification code sent to your email.
               </p>
@@ -164,7 +170,7 @@ export default function Otp() {
                     onFocus={handleFocus}
                     onPaste={handlePaste}
                     ref={(el) => (inputRefs.current[index] = el)}
-                    className="flex h-12 w-12 items-center justify-center rounded-lg border border-gray-300 bg-white text-center text-xl font-medium shadow-sm outline-none focus:ring-2 focus:ring-primary sm:h-16 sm:w-16 sm:text-3xl"
+                    className="flex h-12 w-12 items-center justify-center rounded-lg border border-gray-400 bg-white text-center text-xl font-medium shadow-sm outline-none focus:ring-2 focus:ring-primary sm:h-16 sm:w-16 sm:text-3xl"
                   />
                 ))}
               </form>
@@ -172,7 +178,7 @@ export default function Otp() {
               <Button
                 disabled={otp.some((digit) => digit === '')}
                 onClick={handleOtpSubmit}
-                className="mt-5 w-full text-white bg-watney hover:bg-watney/90 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="mt-5 w-full bg-theme text-white hover:bg-theme/90 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 Verify OTP
               </Button>
@@ -188,7 +194,7 @@ export default function Otp() {
                   type="button"
                 >
                   {isCooldownActive ? (
-                    <span className="flex items-center ">
+                    <span className="flex items-center">
                       <svg
                         className="mr-1 h-3 w-3 animate-spin"
                         viewBox="0 0 24 24"
@@ -214,20 +220,11 @@ export default function Otp() {
                   )}
                 </button>
               </div>
-
-              {/* <p className="mt-4 text-center text-sm text-muted-foreground">
-                Don't have an account?{' '}
-                <Link
-                  to="/signup"
-                  className="hover:pointer underline underline-offset-4"
-                >
-                  Sign up
-                </Link>
-              </p> */}
             </div>
           </Card>
         </div>
       </div>
     </div>
   );
+  
 }

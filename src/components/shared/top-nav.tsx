@@ -22,56 +22,50 @@ export function TopNav() {
   const navLinks = [
     // { path: '/dashboard/student-applications', label: 'Student Applications' },
     // // { path: '/dashboard/career-applications', label: 'Career Applications' },
-    // { path: '/dashboard/courses', label: 'Course' },
-    // { path: '/dashboard/terms', label: 'Term' },
-    // { path: '/dashboard/jobs', label: 'Job' },
+    { path: '/dashboard/agents', label: 'Agent' },
+    { path: '/dashboard/investors', label: 'Investor' },
+    { path: '/dashboard/investments', label: 'Project' },
   ];
 
   return (
     <div className="flex h-16 items-center justify-between bg-white px-4 shadow-sm">
       <div className="flex items-center space-x-4">
-        {isCompleted ? (
-          <Link to="/dashboard" className="flex items-center space-x-4">
-            <img src={logo} className="w-12" />
-            <span className="text-lg font-semibold text-black"></span>
-          </Link>
-        ) : (
-          <div className="flex items-center space-x-4">
-            <img src={logo} className="w-12" />
-            <span className="text-lg font-semibold text-black"></span>
-          </div>
-        )}
+        <Link to="/dashboard" className="flex items-center space-x-4">
+          <h1 className="text-xl font-semibold">Investment Portfolio</h1>
+          <span className="text-lg font-semibold text-black"></span>
+        </Link>
       </div>
 
-   
-   {user?.role === 'admin' && <div className="flex items-center space-x-6">
-        {navLinks.map((link) => (
-          <Link
-            key={link.path}
-            to={link.path}
-            className="text-black font-semibold py-1 px-2 hover:bg-watney hover:text-white rounded-sm transition-all"
-          >
-            {link.label}
-          </Link>
-        ))}
-      </div>}
+      {user?.role === 'admin' && (
+        <div className="flex items-center space-x-6">
+          {navLinks.map((link) => (
+            <Link
+              key={link.path}
+              to={link.path}
+              className="rounded-sm px-2 py-1 font-semibold text-black transition-all hover:bg-theme hover:text-white"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center space-x-4">
         <div
           className={`flex flex-col items-start`}
-          onClick={() => {
-            if (isCompleted) navigate('/dashboard/profile');
-          }}
+          // onClick={() => {
+          //   if (isCompleted) navigate('/dashboard/profile');
+          // }}
         >
           <span className="text-sm font-semibold text-black">{user?.name}</span>
-          <div className="text-[12px] gap-4 cursor-pointer flex flex-row items-center font-medium text-black">
+          <div className="flex cursor-pointer flex-row items-center gap-4 text-[12px] font-medium text-black">
             <span>{user?.email}</span>
-            <span className='text-watney'>Edit Profile</span>
+            {/* <span className="text-theme">Edit Profile</span> */}
           </div>
         </div>
         <Button
           onClick={handleLogout}
-          className="flex cursor-pointer items-center space-x-6 rounded-md bg-watney p-2 text-white hover:bg-watney/90"
+          className="flex cursor-pointer items-center space-x-6 rounded-md bg-theme p-2 text-white hover:bg-theme/90"
         >
           <div className="flex flex-row items-center justify-center gap-1 rounded-md p-2">
             <LogOut className="h-4 w-4" />

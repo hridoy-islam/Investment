@@ -223,7 +223,7 @@ export const resendOtp = createAsyncThunk(
 );
 
 export const logout = createAsyncThunk<void>('user/logout', async () => {
-  localStorage.removeItem('watney');
+  localStorage.removeItem('investment');
 });
 
 const authSlice = createSlice({

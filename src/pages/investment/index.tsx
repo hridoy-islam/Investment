@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Plus, Pen, MoveLeft } from 'lucide-react'
+import { Plus, Pen, MoveLeft, Eye } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -15,14 +15,15 @@ import { useToast } from "@/components/ui/use-toast";
 import { BlinkingDots } from "@/components/shared/blinking-dots";
 import { Input } from "@/components/ui/input"
 import { DataTablePagination } from "@/components/shared/data-table-pagination"
-import { AgentDialog } from "./components/agent-dialog"
+import { investmentDialog } from "./components/investment-dialog"
 import { useNavigate } from "react-router-dom"
+import { InvestmentDialog } from "./components/invesment-dialog"
 
-export default function AgentPage() {
-  const [agents, setAgents] = useState<any>([])
+export default function InvestmentPage() {
+  const [investments, setInvestments] = useState<any>([])
   const [initialLoading, setInitialLoading] = useState(true); 
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingAgent, setEditingAgent] = useState<any>()
+  const [editingInvestment, setEditingInvestment] = useState<any>()
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -34,14 +35,14 @@ export default function AgentPage() {
     try {
       
       if (initialLoading) setInitialLoading(true);
-      const response = await axiosInstance.get(`/users?role=agent`, {
+      const response = await axiosInstance.get(`/investments`, {
         params: {
           page,
           limit: entriesPerPage,
           ...(searchTerm ? { searchTerm } : {}),
         },
       });
-      setAgents(response.data.data.result);
+      setInvestments(response.data.data.result);
       setTotalPages(response.data.data.meta.totalPage);
     } catch (error) {
       console.error("Error fetching institutions:", error);
@@ -51,31 +52,23 @@ export default function AgentPage() {
   };
 
 
- const handleSubmit = async (data) => {
+  const handleSubmit = async (data) => {
     try {
-      // Create payload and remove empty password field if necessary
-      const payload = { ...data, role: 'agent' };
-   
-      if (payload.password === '') {
-        delete payload.password;
-      }
-
-      let response;
-
-      if (editingAgent) {
-        // Remove password from update data regardless of value
-
+     
+let response;
+      if (editingInvestment) {
+       
         response = await axiosInstance.patch(
-          `/users/${editingAgent?._id}`,
-          payload
+          `/investments/${editingInvestment?._id}`,
+          data
         );
       } else {
-        response = await axiosInstance.post(`/auth/signup`, payload);
+        response = await axiosInstance.post(`/investments`, data);
       }
 
       if (response.data && response.data.success === true) {
         toast({
-          title: response.data.message || 'Investor created successfully',
+          title: response.data.message || 'Investments created successfully',
           className: 'bg-theme border-none text-white'
         });
       } else if (response.data && response.data.success === false) {
@@ -92,7 +85,7 @@ export default function AgentPage() {
 
       // Refresh data
       fetchData(currentPage, entriesPerPage);
-      setEditingAgent(undefined); // Reset editing state
+      setEditingInvestment(undefined); // Reset editing state
     } catch (error) {
       toast({
         title: 'An error occurred. Please try again.',
@@ -120,7 +113,7 @@ export default function AgentPage() {
   };
 
   const handleEdit = (data) => {
-    setEditingAgent(data)
+    setEditingInvestment(data)
     setDialogOpen(true)
   }
 
@@ -134,13 +127,13 @@ export default function AgentPage() {
    <div className="space-y-3">
      <div className="flex items-center justify-between">
        <div className="flex flex-row items-center gap-4">
-         <h1 className="text-2xl font-semibold">Agent List</h1>
+         <h1 className="text-2xl font-semibold">Project List</h1>
          <div className="flex items-center space-x-4">
            <Input
              type="text"
              value={searchTerm}
              onChange={(e) => setSearchTerm(e.target.value)}
-             placeholder="Search by name, email"
+             placeholder="Search by project name"
              className="h-8 max-w-[400px]"
            />
            <Button
@@ -164,10 +157,10 @@ export default function AgentPage() {
          <Button
            className="border-none bg-theme text-white hover:bg-theme/90"
            size={'sm'}
-           onClick={() => setDialogOpen(true)}
+           onClick={() => navigate('/dashboard/investments/new')}
          >
            <Plus className="mr-2 h-4 w-4" />
-           New Agent
+           New Project
          </Button>
        </div>
      </div>
@@ -177,7 +170,7 @@ export default function AgentPage() {
          <div className="flex justify-center py-6">
            <BlinkingDots size="large" color="bg-theme" />
          </div>
-       ) : agents.length === 0 ? (
+       ) : investments.length === 0 ? (
          <div className="flex justify-center py-6 text-gray-500">
            No records found.
          </div>
@@ -185,32 +178,55 @@ export default function AgentPage() {
          <Table>
            <TableHeader>
              <TableRow>
-               <TableHead>Agent Name</TableHead>
-               <TableHead>Email</TableHead>
-               <TableHead className="w-32 text-center">Status</TableHead>
-               <TableHead className="w-32 text-center">Actions</TableHead>
+               <TableHead>Project Name</TableHead>
+               <TableHead>View Investors</TableHead>
+               <TableHead>Status</TableHead>
+               <TableHead className=" text-end">Actions</TableHead>
              </TableRow>
            </TableHeader>
            <TableBody>
-             {agents.map((agent) => (
-               <TableRow key={agent._id}>
-                 <TableCell>{agent.name}</TableCell>
-                 <TableCell>{agent.email}</TableCell>
-                 <TableCell className="text-center">
+             {investments.map((investment) => (
+               <TableRow key={investment._id}>
+                 <TableCell>{investment.title}</TableCell>
+                 <TableCell>
+                   <Button
+                     onClick={() =>
+                       navigate(
+                         `/dashboard/investments/participant/${investment._id}`
+                       )
+                     }
+                     className="bg-theme text-white hover:bg-theme/90"
+                   >
+                     View
+                   </Button>
+                 </TableCell>
+                 <TableCell>
                    <Switch
-                     checked={agent.status === 'active'}
+                     checked={investment.status === 'active'}
                      onCheckedChange={(checked) =>
-                       handleStatusChange(agent._id, checked)
+                       handleStatusChange(investment._id, checked)
                      }
                      className="mx-auto"
                    />
                  </TableCell>
-                 <TableCell className="text-center">
+                 <TableCell className="flex flex-row items-center justify-end gap-2 text-center">
                    <Button
                      variant="ghost"
                      className="border-none bg-theme text-white hover:bg-theme/90"
                      size="icon"
-                     onClick={() => handleEdit(agent)}
+                     onClick={() =>
+                       navigate(`/dashboard/investments/view/${investment._id}`)
+                     }
+                   >
+                     <Eye className="h-4 w-4" />
+                   </Button>
+                   <Button
+                     variant="ghost"
+                     className="border-none bg-theme text-white hover:bg-theme/90"
+                     size="icon"
+                     onClick={() =>
+                       navigate(`/dashboard/investments/edit/${investment._id}`)
+                     }
                    >
                      <Pen className="h-4 w-4" />
                    </Button>
@@ -229,14 +245,14 @@ export default function AgentPage() {
        />
      </div>
 
-     <AgentDialog
+     <InvestmentDialog
        open={dialogOpen}
        onOpenChange={(open) => {
          setDialogOpen(open);
-         if (!open) setEditingAgent(undefined);
+         if (!open) setEditingInvestment(undefined);
        }}
        onSubmit={handleSubmit}
-       initialData={editingAgent}
+       initialData={editingInvestment}
      />
    </div>
  );

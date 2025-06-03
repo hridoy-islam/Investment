@@ -10,6 +10,12 @@ import Otp from '@/pages/auth/otp';
 import NewPassword from '@/pages/new-password';
 import AdminLayout from '@/components/layout/admin-layout';
 import AgentPage from '@/pages/agent';
+import InvestorPage from '@/pages/investor';
+import InvestmentPage from '@/pages/investment';
+import NewInvestment from '@/pages/investment/components/create-investment';
+import EditInvestment from '@/pages/investment/components/edit-investment';
+import ViewInvestorPage from '@/pages/investment/components/view-investor';
+import ViewInvestmentPage from '@/pages/investment/components/view-investment';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -43,11 +49,33 @@ export default function AppRouter() {
           element: <AgentPage />
         },
         {
+          path: 'investors',
+          element: <InvestorPage />
+        },
+        {
+          path: 'investments',
+          element: <InvestmentPage />
+        },
+        {
+          path: 'investments/new',
+          element: <NewInvestment />
+        },
+        {
+          path: 'investments/edit/:id',
+          element: <EditInvestment />
+        },
+        {
+          path: 'investments/participant/:id',
+          element: <ViewInvestorPage />
+        },
+        {
+          path: 'investments/view/:id',
+          element: <ViewInvestmentPage />
+        },
+        {
           path: 'notifications',
           element: <NotificationsPage />
-        },
-        
-        
+        }
       ]
     }
   ];
