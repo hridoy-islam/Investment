@@ -528,7 +528,14 @@ export const nationalities = [
   'Zambian',
   'Zimbabwean'
 ];
-
+export const currencies = [
+  { value: 'USD', label: 'US Dollar (USD)' },
+  { value: 'CAD', label: 'Canadian Dollar (CAD)' },
+  { value: 'GBP', label: 'British Pound (GBP)' },
+  { value: 'EUR', label: 'Euro (EUR)' },
+  { value: 'AUD', label: 'Australian Dollar (AUD)' },
+  // Add more currencies as needed
+];
 
 export const countries = [
   'Afghanistan',

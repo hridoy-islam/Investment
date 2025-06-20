@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ApplicantDashboard } from './rolewise-dashboard/applicant-dashboard';
-import { StudentDashboard } from './rolewise-dashboard/student-applicant';
+import { AgentDashboard, ApplicantDashboard } from './rolewise-dashboard/agent-dashboard';
+import { InvestorDashboard, StudentDashboard } from './rolewise-dashboard/investor-dashboard';
 import { AdminDashboard } from './rolewise-dashboard/admin-dashboard';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -13,17 +13,13 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (user && user.isValided) {
-      if (!user.isCompleted) {
-        if (user.role === 'student') {
-          navigate('/dashboard/student-guideline');
-        } else if (user.role === 'applicant') {
-          navigate('/dashboard/career-guideline');
-        }
-      }
-    }
-  }, [user, navigate]);
+  // useEffect(() => {
+  //   if (user && user.isValided) {
+   
+  //         navigate('/dashboard');
+       
+  //   }
+  // }, [user, navigate]);
 
 
 
@@ -64,16 +60,16 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user.isValided) {
-    return <VerifyPage user={user} />;
-  }
+  // if (!user.isValided) {
+  //   return <VerifyPage user={user} />;
+  // }
 
   const renderDashboard = () => {
     switch (user.role) {
-      case 'applicant':
-        return <ApplicantDashboard user={user} />;
-      case 'student':
-        return <StudentDashboard user={user} />;
+      case 'investor':
+        return <InvestorDashboard user={user} />;
+      case 'agent':
+        return <AgentDashboard user={user} />;
       case 'admin':
         return <AdminDashboard />;
       default:

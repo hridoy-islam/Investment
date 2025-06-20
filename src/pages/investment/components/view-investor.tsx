@@ -91,7 +91,7 @@ export default function ViewInvestorPage() {
     }
   };
 
-  const onSubmit = async (data: { rate: number }) => {
+  const onSubmit = async (data: { amount: any; rate: number }) => {
     if (!selectedInvestor?.value) return;
 
     setSubmitLoading(true);
@@ -99,7 +99,8 @@ export default function ViewInvestorPage() {
       await axiosInstance.post('/investment-participants', {
         investorId: selectedInvestor.value,
         investmentId: id,
-        rate: data.rate
+        rate: data.rate,
+        amount: data.amount
       });
       fetchParticipants(currentPage, entriesPerPage); // Refresh table
       closeModal();
@@ -123,7 +124,8 @@ export default function ViewInvestorPage() {
 
   const { handleSubmit, control, reset } = useForm({
     defaultValues: {
-      rate: 0
+      rate: 0,
+      amount: 0
     }
   });
 
@@ -131,6 +133,14 @@ export default function ViewInvestorPage() {
     fetchParticipants(currentPage, entriesPerPage);
     fetchProject();
   }, [currentPage, entriesPerPage]);
+
+  const addedInvestorIds = participants.map(p => p.investorId?._id);
+
+{/* Filter investors not yet added */}
+const filteredInvestorOptions = investors.filter(
+  (investor) => !addedInvestorIds.includes(investor.value)
+);
+
 
   return (
     <div className="space-y-6">
@@ -175,6 +185,8 @@ export default function ViewInvestorPage() {
                 <TableHead>Investor Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Investment Title</TableHead>
+                <TableHead>Investment Amount</TableHead>
+                <TableHead>Rate</TableHead>
                 <TableHead className="text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -190,6 +202,12 @@ export default function ViewInvestorPage() {
                   <TableCell>
                     {participant.investmentId?.title || 'N/A'}
                   </TableCell>
+                  <TableCell>
+                   £{participant?.amount || 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    {participant?.rate || 'N/A'}%
+                  </TableCell>
                   <TableCell className="text-center">
                     <Button
                       variant="ghost"
@@ -197,7 +215,7 @@ export default function ViewInvestorPage() {
                       size="icon"
                       onClick={() =>
                         navigate(
-                          `/dashboard/investor/${participant.investorId?._id}`
+                          `/dashboard/investor/projects/account-history/${participant._id}`
                         )
                       }
                     >
@@ -231,7 +249,7 @@ export default function ViewInvestorPage() {
                   Select Investor
                 </label>
                 <Select
-                  options={investors}
+                  options={filteredInvestorOptions}
                   value={selectedInvestor}
                   onChange={(option) => setSelectedInvestor(option)}
                   placeholder="Search investor..."
@@ -239,25 +257,47 @@ export default function ViewInvestorPage() {
               </div>
 
               {selectedInvestor && (
-                <div className="mb-4">
-                  <label className="mb-2 block text-sm font-medium">
-                    Rate (%)
-                  </label>
-                  <Controller
-                    name="rate"
-                    control={control}
-                    rules={{ required: true, min: 0 }}
-                    render={({ field }) => (
-                      <input
-                        type="number"
-                        {...field}
-                        className="w-full rounded border px-3 py-2"
-                        placeholder="Enter rate"
-                        min="0"
-                        step="0.01"
-                      />
-                    )}
-                  />
+                <div>
+                  <div className="mb-4">
+                    <label className="mb-2 block text-sm font-medium">
+                      Amount (&pound;)
+                    </label>
+                    <Controller
+                      name="amount"
+                      control={control}
+                      rules={{ required: true, min: 0 }}
+                      render={({ field }) => (
+                        <input
+                          type="number"
+                          {...field}
+                          className="w-full rounded border px-3 py-2 border-gray-300"
+                          placeholder="Enter Amount"
+                          min="0"
+                          step="0.01"
+                        />
+                      )}
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="mb-2 block text-sm font-medium">
+                      Rate (%)
+                    </label>
+                    <Controller
+                      name="rate"
+                      control={control}
+                      rules={{ required: true, min: 0 }}
+                      render={({ field }) => (
+                        <input
+                          type="number"
+                          {...field}
+                          className="w-full rounded border px-3 py-2 border-gray-300"
+                          placeholder="Enter rate"
+                          min="0"
+                          step="0.01"
+                        />
+                      )}
+                    />
+                  </div>
                 </div>
               )}
 

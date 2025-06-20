@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,11 +8,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import moment from 'moment';
-
+import axiosInstance from '@/lib/axios';
+import Select from 'react-select';
 // Schemas
 const createInvestorSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -27,7 +28,8 @@ const editInvestorSchema = z.object({
   email: z.string().email('Invalid email'),
   password: z.string().optional(),
   dateOfBirth: z.string().optional(),
-  address: z.string().optional()
+  address: z.string().optional(),
+  agent: z.string().optional()
 });
 
 export function InvestorDialog({ open, onOpenChange, onSubmit, initialData }) {
@@ -41,6 +43,7 @@ export function InvestorDialog({ open, onOpenChange, onSubmit, initialData }) {
     handleSubmit,
     setValue,
     reset,
+    control,
     formState: { errors }
   } = useForm({
     resolver: zodResolver(schema),
@@ -49,27 +52,54 @@ export function InvestorDialog({ open, onOpenChange, onSubmit, initialData }) {
       email: '',
       password: '',
       dateOfBirth: '',
-      address: ''
+      address: '',
+      agent: ''
     }
   });
+  const [agents, setAgents] = useState([]);
 
   useEffect(() => {
-    if (initialData) {
-      reset({
-        name: initialData.name || '',
-        email: initialData.email || '',
-        password: '',
-        dateOfBirth: initialData.dateOfBirth
-          ? moment(initialData.dateOfBirth).format('YYYY-MM-DD')
-          : '',
-        address: initialData.address || ''
-      });
-    } else {
-      reset();
-    }
-  }, [initialData, reset]);
+    const fetchAgents = async () => {
+      try {
+        const response = await axiosInstance.get('/users?role=agent&limit=all');
+        const formatted =
+          response.data?.data?.result?.map((agent) => ({
+            value: agent._id,
+            label: agent.name
+          })) || [];
+        setAgents(formatted);
+      } catch (error) {
+        console.error('Failed to fetch agents:', error);
+      }
+    };
+    fetchAgents();
+  }, []);
+
+useEffect(() => {
+  if (initialData && agents.length > 0) {
+    const defaultValues = {
+      name: initialData.name || '',
+      email: initialData.email || '',
+      password: '',
+      dateOfBirth: initialData.dateOfBirth
+        ? moment(initialData.dateOfBirth).format('YYYY-MM-DD')
+        : '',
+      address: initialData.address || '',
+      agent: initialData.agent?._id || ''
+    };
+
+    console.log('Default Values:', defaultValues); // Debug log
+    reset(defaultValues);
+  } else if (!initialData) {
+    reset();
+  }
+}, [initialData, agents, reset]);
+
 
   const onFormSubmit = (data) => {
+     if (!data.agent) {
+    delete data.agent;
+  }
     onSubmit(data);
     onOpenChange(false);
     reset();
@@ -101,7 +131,28 @@ export function InvestorDialog({ open, onOpenChange, onSubmit, initialData }) {
             <Label htmlFor="address">Address</Label>
             <Input id="address" {...register('address')} />
           </div>
-
+          <div className="space-y-2">
+            <Label htmlFor="agent">Agent</Label>
+            <Controller
+              control={control}
+              name="agent"
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  id="agent"
+                  options={agents}
+                  placeholder="Select an agent"
+                  isClearable
+             
+                  value={
+                    agents.find((option) => option?.value === field.value) ||
+                    null
+                  }
+                  onChange={(selected) => field.onChange(selected?.value || '')}
+                />
+              )}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">
               Email <span className="text-red-500">*</span>

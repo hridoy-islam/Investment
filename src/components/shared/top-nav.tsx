@@ -22,9 +22,9 @@ export function TopNav() {
   const navLinks = [
     // { path: '/dashboard/student-applications', label: 'Student Applications' },
     // // { path: '/dashboard/career-applications', label: 'Career Applications' },
-    { path: '/dashboard/agents', label: 'Agent' },
-    { path: '/dashboard/investors', label: 'Investor' },
-    { path: '/dashboard/investments', label: 'Project' },
+    // { path: '/dashboard/agents', label: 'Agent' },
+    // { path: '/dashboard/investors', label: 'Investor' },
+    // { path: '/dashboard/investments', label: 'Project' },
   ];
 
   return (

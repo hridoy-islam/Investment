@@ -16,6 +16,20 @@ import NewInvestment from '@/pages/investment/components/create-investment';
 import EditInvestment from '@/pages/investment/components/edit-investment';
 import ViewInvestorPage from '@/pages/investment/components/view-investor';
 import ViewInvestmentPage from '@/pages/investment/components/view-investment';
+import ReferralPage from '@/pages/agent/referral';
+import InvestmentProjectPage from '@/pages/investor/project-investment';
+import InvestorInvestmentPage from '@/pages/investment/investor-projects';
+import BankPage from '@/pages/bank';
+import CreateBankPage from '@/pages/bank/components/create-account';
+import EditBankPage from '@/pages/bank/components/edit-account';
+import AgentReferralPage from '@/pages/agent-referral';
+import InvestorBankPage from '@/pages/investor/investor-bank';
+import CreateInvestorBankPage from '@/pages/investor/investor-bank/components/create-account';
+import EditInvestorBankPage from '@/pages/investor/investor-bank/components/edit-account';
+import OfferPage from '@/pages/offer';
+import InvestorAccountHistoryPage from '@/pages/investor/account-history';
+import AMLPage from '@/pages/aml';
+import MonthLog from '@/pages/investor/account-history/components/month-log';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -45,13 +59,38 @@ export default function AppRouter() {
           element: <ProfilePage />
         },
         {
+          path: 'profile/aml',
+          element: <AMLPage />
+        },
+        {
           path: 'agents',
           element: <AgentPage />
+        },
+        {
+          path: 'agent/referral',
+          element: <AgentReferralPage />
+        },
+        {
+          path: 'agents/referral/:id',
+          element: <ReferralPage />
         },
         {
           path: 'investors',
           element: <InvestorPage />
         },
+         {
+          path: 'investor/projects',
+          element: <InvestorInvestmentPage />
+        },
+        {
+          path: 'investor/projects/:id',
+          element: <InvestmentProjectPage />
+        },
+        {
+          path: 'investor/projects/account-history/:id',
+          element: <InvestorAccountHistoryPage />
+        },
+        
         {
           path: 'investments',
           element: <InvestmentPage />
@@ -75,13 +114,45 @@ export default function AppRouter() {
         {
           path: 'notifications',
           element: <NotificationsPage />
+        },
+       
+        {
+          path: 'investors/bank/:id',
+          element: <InvestorBankPage />
+        },
+        {
+          path: '/dashboard/banks/investor/create/:id',
+          element: <CreateInvestorBankPage />
+        },
+        {
+          path: '/dashboard/banks/investor/edit/:id',
+          element: <EditInvestorBankPage />
+        },
+        // {
+        //   path: 'investors/bank/:id',
+        //   element: <CreateInvestorBankPage />
+        // },
+        {
+          path: 'banks',
+          element: <BankPage />
+        },
+        {
+          path: 'banks/create',
+          element: <CreateBankPage />
+        },
+        {
+          path: 'banks/edit/:id',
+          element: <EditBankPage />
+        },
+        {
+          path: 'offers',
+          element: <OfferPage />
         }
       ]
     }
   ];
 
   const publicRoutes = [
-
     {
       path: '/',
       element: <SignInPage />,
@@ -111,7 +182,7 @@ export default function AppRouter() {
       path: '/404',
       element: <NotFound />
     },
-   
+
     {
       path: '*',
       element: <Navigate to="/404" replace />

@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useState, useMemo } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -18,99 +16,81 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import axiosInstance from '@/lib/axios';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Card } from '@/components/ui/card';
 
 interface InvestmentData {
   title: string;
-  image?: File | null;
-  imageUrl?: string;
+  image?: string;
   details: string;
   documents: {
-    file: File;
     title: string;
-    url?: string;
+    url: string;
   }[];
 }
 
-export default function EditInvestment() {
-  const { id } = useParams();
+export default function Editnvestment() {
   const [title, setTitle] = useState('');
   const [image, setImage] = useState<File | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [details, setDetails] = useState('');
-  const [documents, setDocuments] = useState<
-    { file: File; title: string; url?: string }[]
-  >([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [details, setDetails] = useState('');
+  const [documents, setDocuments] = useState<{ file?: File; title: string; url?: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
-  const [newDocument, setNewDocument] = useState<{
-    file: File | null;
-    title: string;
-  }>({ file: null, title: '' });
+  const [newDocument, setNewDocument] = useState<{ file: File | null; title: string }>({
+    file: null,
+    title: ''
+  });
+
   const { toast } = useToast();
+  const { id } = useParams();
   const navigate = useNavigate();
+
+  const quillModules = useMemo(() => ({
+    toolbar: [
+      ['bold', 'italic', 'underline', 'strike'],
+      ['blockquote', 'code-block'],
+      [{ header: 1 }, { header: 2 }],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      [{ script: 'sub' }, { script: 'super' }],
+      [{ indent: '-1' }, { indent: '+1' }],
+      [{ direction: 'rtl' }],
+      [{ size: ['small', false, 'large', 'huge'] }],
+      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+      [{ color: [] }, { background: [] }],
+      [{ font: [] }],
+      [{ align: [] }],
+      ['clean'],
+      ['link']
+    ]
+  }), []);
 
   useEffect(() => {
     const fetchInvestment = async () => {
       try {
         const response = await axiosInstance.get(`/investments/${id}`);
-        const data = response.data.data;
+        const data: InvestmentData = response.data.data;
 
         setTitle(data.title);
         setDetails(data.details);
-        setImageUrl(data.imageUrl);
-        setImagePreview(data.imageUrl);
-
-        // Convert existing documents to the format we need
-        if (data.documents && Array.isArray(data.documents)) {
-          const formattedDocs = data.documents.map((doc: any) => ({
+        if (data.image) setImagePreview(data.image);
+        if (data.documents) {
+          setDocuments(data.documents.map(doc => ({
             title: doc.title,
-            url: doc.url,
-            file: new File([], doc.title) // Placeholder file object
-          }));
-          setDocuments(formattedDocs);
+            url: doc.url
+          })));
         }
-      } catch (error) {
+      } catch (err) {
         toast({
-          title: 'Failed to fetch investment data',
+          title: 'Failed to load investment data',
           className: 'bg-red-500 border-none text-white'
         });
-        navigate('/dashboard/investments');
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    if (id) {
-      fetchInvestment();
-    }
-  }, [id, toast, navigate]);
+    fetchInvestment();
+  }, [id]);
 
-  const quillModules = useMemo(
-    () => ({
-      toolbar: [
-        ['bold', 'italic', 'underline', 'strike'],
-        ['blockquote', 'code-block'],
-        [{ header: 1 }, { header: 2 }],
-        [{ list: 'ordered' }, { list: 'bullet' }],
-        [{ script: 'sub' }, { script: 'super' }],
-        [{ indent: '-1' }, { indent: '+1' }],
-        [{ direction: 'rtl' }],
-        [{ size: ['small', false, 'large', 'huge'] }],
-        [{ header: [1, 2, 3, 4, 5, 6, false] }],
-        [{ color: [] }, { background: [] }],
-        [{ font: [] }],
-        [{ align: [] }],
-        ['clean'],
-        ['link', 'image', 'video']
-      ]
-    }),
-    []
-  );
-
-  // Image handler
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const file = e.target.files[0];
@@ -124,26 +104,18 @@ export default function EditInvestment() {
   const handleRemoveImage = () => {
     setImage(null);
     setImagePreview(null);
-    setImageUrl(null);
   };
 
-  // Document handlers
   const handleDocumentFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const file = e.target.files[0];
-      setNewDocument((prev) => ({ ...prev, file, title: file.name }));
+      setNewDocument({ file, title: file.name });
     }
   };
 
   const handleAddDocument = () => {
     if (newDocument.file) {
-      setDocuments((prev) => [
-        ...prev,
-        {
-          file: newDocument.file as File,
-          title: newDocument.title || newDocument.file.name
-        }
-      ]);
+      setDocuments((prev) => [...prev, { file: newDocument.file!, title: newDocument.title }]);
       setNewDocument({ file: null, title: '' });
       setDocumentDialogOpen(false);
     }
@@ -155,63 +127,42 @@ export default function EditInvestment() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setUploadProgress(0);
+
+    const payload = {
+      title,
+      details,
+      image: imagePreview || null,
+      documents: documents.map((doc) => ({
+        title: doc.title,
+        url: doc.url || ''
+      }))
+    };
 
     try {
-      const formData = new FormData();
-      formData.append('title', title);
-      formData.append('details', details);
+      setIsSubmitting(true);
 
-      if (image) {
-        formData.append('image', image);
-      }
-
-      documents.forEach((doc, index) => {
-        if (doc.file.size > 0) {
-          // Only append new files (not placeholder ones)
-          formData.append(`documents[${index}][file]`, doc.file);
-          formData.append(`documents[${index}][title]`, doc.title);
-        } else if (doc.url) {
-          // For existing documents, just send the URL and title
-          formData.append(`documents[${index}][url]`, doc.url);
-          formData.append(`documents[${index}][title]`, doc.title);
-        }
-      });
-
-      const fakeUpload = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(fakeUpload);
-            return 100;
-          }
-          return prev + 10;
-        });
-      }, 100);
-
-      const response = await axiosInstance.put(`/investments/${id}`, formData, {
+      const response = await axiosInstance.patch(`/investments/${id}`, payload, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'application/json'
         }
       });
 
-      clearInterval(fakeUpload);
-
-      if (response.data && response.data.success === true) {
+      if (response.data?.success) {
         toast({
-          title: response.data.message || 'Investment updated successfully',
+          title: response.data.message || 'Investment updated successfully!',
           className: 'bg-theme border-none text-white'
         });
         navigate('/dashboard/investments');
       } else {
         toast({
-          title: response.data?.message || 'Operation failed',
+          title: response.data?.message || 'Update failed',
           className: 'bg-red-500 border-none text-white'
         });
       }
     } catch (error) {
+      console.error('Update error:', error);
       toast({
-        title: 'An error occurred. Please try again.',
+        title: 'An error occurred while updating.',
         className: 'bg-red-500 border-none text-white'
       });
     } finally {
@@ -219,29 +170,23 @@ export default function EditInvestment() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-theme border-t-transparent"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="mx-auto space-y-8 px-4 ">
-      <div className="flex w-full  items-center justify-between">
-        <h1 className="mb-6 text-3xl font-bold">Edit Investment</h1>
-        <Button
-          className="bg-theme text-white hover:bg-theme"
+    <Card className="mx-auto space-y-8 p-6">
+      <div className='flex w-full items-center justify-between'>
+        <h1 className="mb-6 text-3xl font-bold">Add New Project</h1>
+        <Button 
+          className='bg-theme text-white hover:bg-theme' 
           onClick={() => navigate('/dashboard/investments')}
+          type="button"
         >
-          <MoveLeft />
-          Back
+          <MoveLeft/>Back
         </Button>
       </div>
+
       <form
         onSubmit={handleSubmit}
         className="grid grid-cols-1 gap-8 md:grid-cols-2"
+        noValidate
       >
         {/* Left Side - Title and Details */}
         <div className="space-y-6">
@@ -281,7 +226,7 @@ export default function EditInvestment() {
             <div className="flex items-center gap-4">
               <label
                 htmlFor="image-upload"
-                className="relative flex h-32 w-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="relative flex h-32 w-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed hover:bg-gray-50 dark:hover:bg-gray-200"
               >
                 {imagePreview ? (
                   <>
@@ -336,7 +281,7 @@ export default function EditInvestment() {
                 onOpenChange={setDocumentDialogOpen}
               >
                 <DialogTrigger asChild>
-                  <div className="flex h-12 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <div className="flex h-12 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed hover:bg-gray-50 dark:hover:bg-gray-200">
                     <div className="flex items-center gap-2 p-4 text-gray-500">
                       <FileUp size={20} />
                       <span>Click to upload documents</span>
@@ -395,6 +340,7 @@ export default function EditInvestment() {
                       onClick={handleAddDocument}
                       disabled={!newDocument.file}
                       className="flex items-center gap-2"
+                      type="button"
                     >
                       <Save size={16} /> Add Document
                     </Button>
@@ -415,9 +361,7 @@ export default function EditInvestment() {
                           {doc.title}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {doc.file.size > 0
-                            ? `${(doc.file.size / 1024).toFixed(1)} KB`
-                            : 'Existing document'}
+                          {(doc.file.size / 1024).toFixed(1)} KB
                         </span>
                       </div>
                       <button
@@ -438,23 +382,13 @@ export default function EditInvestment() {
 
         {/* Submit Buttons */}
         <div className="md:col-span-2">
-          {isSubmitting && (
-            <div className="mb-6 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Uploading files...</span>
-                <span>{uploadProgress}%</span>
-              </div>
-              <Progress value={uploadProgress} className="h-2" />
-            </div>
-          )}
+         
 
           <div className="flex justify-end gap-4 pt-4">
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                navigate('/dashboard/investments');
-              }}
+              onClick={() => navigate('/dashboard/investments')}
               disabled={isSubmitting}
               className="rounded-lg"
             >
@@ -465,11 +399,11 @@ export default function EditInvestment() {
               className="rounded-lg bg-theme text-white hover:bg-theme/90"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Updating...' : 'Update'}
+              {isSubmitting ? 'Submitting...' : 'Submit'}
             </Button>
           </div>
         </div>
       </form>
-    </div>
+    </Card>
   );
 }

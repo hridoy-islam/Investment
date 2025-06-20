@@ -104,7 +104,7 @@ let response;
   const handleStatusChange = async (id, status) => {
     try {
       const updatedStatus = status ? "active" : "block";
-      await axiosInstance.patch(`/users/${id}`, { status: updatedStatus });
+      await axiosInstance.patch(`/investments/${id}`, { status: updatedStatus });
       toast({ title: "Record updated successfully", className: "bg-theme border-none text-white", });
       fetchData(currentPage, entriesPerPage);
     } catch (error) {

@@ -62,8 +62,8 @@ export function AdminDashboard() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex-1 space-y-4  ">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="flex-1 space-y-4 ">
+      <div className=" grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <Card
           onClick={() => navigate('/dashboard/agents')}
           className="flex cursor-pointer flex-col items-center justify-center"

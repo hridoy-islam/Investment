@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import axiosInstance from '@/lib/axios';
 import { useNavigate } from 'react-router-dom';
+import { Card } from '@/components/ui/card';
 
 interface InvestmentData {
   title: string;
@@ -33,9 +34,7 @@ export default function NewInvestment() {
   const [title, setTitle] = useState('');
   const [image, setImage] = useState<File | null>(null);
   const [details, setDetails] = useState('');
-  const [documents, setDocuments] = useState<{ file: File; title: string }[]>(
-    []
-  );
+  const [documents, setDocuments] = useState<{ file: File; title: string }[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -44,8 +43,8 @@ export default function NewInvestment() {
     file: File | null;
     title: string;
   }>({ file: null, title: '' });
-    const { toast } = useToast();
-    const navigate = useNavigate();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   const quillModules = useMemo(
     () => ({
@@ -63,13 +62,12 @@ export default function NewInvestment() {
         [{ font: [] }],
         [{ align: [] }],
         ['clean'],
-        ['link', 'image', 'video']
+        ['link']
       ]
     }),
     []
   );
 
-  // Image handler
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const file = e.target.files[0];
@@ -85,7 +83,6 @@ export default function NewInvestment() {
     setImagePreview(null);
   };
 
-  // Document handlers
   const handleDocumentFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const file = e.target.files[0];
@@ -111,68 +108,69 @@ export default function NewInvestment() {
     setDocuments((prev) => prev.filter((_, i) => i !== index));
   };
 
- 
-const handleSubmit = async (data: InvestmentData) => {
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const payload = {
+    title,
+    details,
+    image: null, // If you're not sending image, pass null or remove this
+    documents: documents.map((doc) => ({
+      title: doc.title,
+      file: null, // You may store just metadata, or handle upload separately
+    })),
+  };
+
   try {
     setIsSubmitting(true);
-    setUploadProgress(0); // Reset progress
 
-    // Fake upload progress (optional)
-    const fakeUpload = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(fakeUpload);
-          setIsSubmitting(false);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 100);
+    const response = await axiosInstance.post('/investments', payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-    // Create new investment
-    const response = await axiosInstance.post(`/investments`, data);
-
-    if (response.data && response.data.success === true) {
+    if (response.data?.success) {
       toast({
         title: response.data.message || 'Investment created successfully',
-        className: 'bg-theme border-none text-white'
+        className: 'bg-theme border-none text-white',
       });
-        navigate('/dashboard/investments'); 
-    } else if (response.data && response.data.success === false) {
-      toast({
-        title: response.data.message || 'Operation failed',
-        className: 'bg-red-500 border-none text-white'
-      });
+      navigate('/dashboard/investments');
     } else {
       toast({
-        title: 'Unexpected response. Please try again.',
-        className: 'bg-red-500 border-none text-white'
+        title: response.data?.message || 'Operation failed',
+        className: 'bg-red-500 border-none text-white',
       });
     }
-
-    
   } catch (error) {
+    console.error('Submission error:', error);
     toast({
       title: 'An error occurred. Please try again.',
-      className: 'bg-red-500 border-none text-white'
+      className: 'bg-red-500 border-none text-white',
     });
+  } finally {
     setIsSubmitting(false);
-    clearInterval(fakeUpload); 
   }
 };
+
+
   return (
-      <div className="mx-auto space-y-8 px-4">
-          <div className='flex w-full  items-center justify-between'>
-              <h1 className="mb-6 text-3xl font-bold">Add New Investment</h1>
-              <Button className='bg-theme text-white hover:bg-theme' onClick={()=> navigate('/dashboard/investments')}><MoveLeft/>Back</Button>
-              
-          </div>
-
-
+    <Card className="mx-auto space-y-8 p-6">
+      <div className='flex w-full items-center justify-between'>
+        <h1 className="mb-6 text-3xl font-bold">Add New Project</h1>
+        <Button 
+          className='bg-theme text-white hover:bg-theme' 
+          onClick={() => navigate('/dashboard/investments')}
+          type="button"
+        >
+          <MoveLeft/>Back
+        </Button>
+      </div>
 
       <form
         onSubmit={handleSubmit}
         className="grid grid-cols-1 gap-8 md:grid-cols-2"
+        noValidate
       >
         {/* Left Side - Title and Details */}
         <div className="space-y-6">
@@ -198,7 +196,7 @@ const handleSubmit = async (data: InvestmentData) => {
               modules={quillModules}
               theme="snow"
               placeholder="Write detailed description here..."
-              className="h-[200px]  text-black"
+              className="h-[200px] text-black"
             />
           </div>
         </div>
@@ -212,7 +210,7 @@ const handleSubmit = async (data: InvestmentData) => {
             <div className="flex items-center gap-4">
               <label
                 htmlFor="image-upload"
-                className="relative flex h-32 w-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="relative flex h-32 w-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed hover:bg-gray-50 dark:hover:bg-gray-200"
               >
                 {imagePreview ? (
                   <>
@@ -267,7 +265,7 @@ const handleSubmit = async (data: InvestmentData) => {
                 onOpenChange={setDocumentDialogOpen}
               >
                 <DialogTrigger asChild>
-                  <div className="flex h-12 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <div className="flex h-12 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed hover:bg-gray-50 dark:hover:bg-gray-200">
                     <div className="flex items-center gap-2 p-4 text-gray-500">
                       <FileUp size={20} />
                       <span>Click to upload documents</span>
@@ -326,6 +324,7 @@ const handleSubmit = async (data: InvestmentData) => {
                       onClick={handleAddDocument}
                       disabled={!newDocument.file}
                       className="flex items-center gap-2"
+                      type="button"
                     >
                       <Save size={16} /> Add Document
                     </Button>
@@ -379,20 +378,11 @@ const handleSubmit = async (data: InvestmentData) => {
 
           <div className="flex justify-end gap-4 pt-4">
             <Button
-              type="reset"
+              type="button"
               variant="outline"
-              onClick={() => {
-                setTitle('');
-                setImage(null);
-                setDetails('');
-                setDocuments([]);
-                setImagePreview(null);
-                  setUploadProgress(0);
-                  navigate('/dashboard/investments'); 
-              }}
+              onClick={() => navigate('/dashboard/investments')}
               disabled={isSubmitting}
-                          className="rounded-lg"
-                          
+              className="rounded-lg"
             >
               Cancel
             </Button>
@@ -406,6 +396,6 @@ const handleSubmit = async (data: InvestmentData) => {
           </div>
         </div>
       </form>
-    </div>
+    </Card>
   );
 }

@@ -1,61 +1,58 @@
-import { useEffect, useState } from "react"
-import { Plus, Pen, MoveLeft } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
+import { useEffect, useState } from 'react';
+import { Plus, Pen, MoveLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+  TableRow
+} from '@/components/ui/table';
 import axiosInstance from '@/lib/axios';
-import { useToast } from "@/components/ui/use-toast";
-import { BlinkingDots } from "@/components/shared/blinking-dots";
-import { Input } from "@/components/ui/input"
-import { DataTablePagination } from "@/components/shared/data-table-pagination"
-import { InvestorDialog } from "./components/investor-dialog"
-import { useNavigate } from "react-router-dom"
+import { useToast } from '@/components/ui/use-toast';
+import { BlinkingDots } from '@/components/shared/blinking-dots';
+import { Input } from '@/components/ui/input';
+import { DataTablePagination } from '@/components/shared/data-table-pagination';
+import { InvestorDialog } from './components/investor-dialog';
+import { useNavigate } from 'react-router-dom';
 
 export default function InvestorPage() {
-  const [investors, setInvestors] = useState<any>([])
-  const [initialLoading, setInitialLoading] = useState(true); 
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingInvestor, setEditingInvestor] = useState<any>()
+  const [investors, setInvestors] = useState<any>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingInvestor, setEditingInvestor] = useState<any>();
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
-
+  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
 
-  const fetchData = async (page, entriesPerPage,searchTerm="") => {
+  const fetchData = async (page, entriesPerPage, searchTerm = '') => {
     try {
-      
       if (initialLoading) setInitialLoading(true);
       const response = await axiosInstance.get(`/users?role=investor`, {
         params: {
           page,
           limit: entriesPerPage,
-          ...(searchTerm ? { searchTerm } : {}),
-        },
+          ...(searchTerm ? { searchTerm } : {})
+        }
       });
       setInvestors(response.data.data.result);
       setTotalPages(response.data.data.meta.totalPage);
     } catch (error) {
-      console.error("Error fetching institutions:", error);
+      console.error('Error fetching institutions:', error);
     } finally {
       setInitialLoading(false); // Disable initial loading after the first fetch
     }
   };
 
-
   const handleSubmit = async (data) => {
     try {
       // Create payload and remove empty password field if necessary
       const payload = { ...data, role: 'investor' };
-   
+
       if (payload.password === '') {
         delete payload.password;
       }
@@ -64,7 +61,7 @@ export default function InvestorPage() {
 
       if (editingInvestor) {
         // Remove password from update data regardless of value
-        
+
         response = await axiosInstance.patch(
           `/users/${editingInvestor?._id}`,
           payload
@@ -100,36 +97,36 @@ export default function InvestorPage() {
       });
     }
   };
-  
 
   const handleSearch = () => {
-    fetchData(currentPage, entriesPerPage, searchTerm); 
+    fetchData(currentPage, entriesPerPage, searchTerm);
   };
-
 
   const handleStatusChange = async (id, status) => {
     try {
-      const updatedStatus = status ? "active" : "block";
+      const updatedStatus = status ? 'active' : 'block';
       await axiosInstance.patch(`/users/${id}`, { status: updatedStatus });
-      toast({ title: "Record updated successfully", className: "bg-theme border-none text-white", });
+      toast({
+        title: 'Record updated successfully',
+        className: 'bg-theme border-none text-white'
+      });
       fetchData(currentPage, entriesPerPage);
     } catch (error) {
-      console.error("Error updating status:", error);
+      console.error('Error updating status:', error);
     }
   };
 
   const handleEdit = (data) => {
-    setEditingInvestor(data)
-    setDialogOpen(true)
-  }
+    setEditingInvestor(data);
+    setDialogOpen(true);
+  };
 
   useEffect(() => {
     fetchData(currentPage, entriesPerPage); // Refresh data
-
   }, [currentPage, entriesPerPage]);
 
-  const navigate = useNavigate()
- return (
+  const navigate = useNavigate();
+  return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex flex-row items-center gap-4">
@@ -186,6 +183,9 @@ export default function InvestorPage() {
               <TableRow>
                 <TableHead>Investor Name</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Agent</TableHead>
+                <TableHead>Projects</TableHead>
+                <TableHead>Banks</TableHead>
                 <TableHead className="w-32 text-center">Status</TableHead>
                 <TableHead className="w-32 text-center">Actions</TableHead>
               </TableRow>
@@ -195,6 +195,31 @@ export default function InvestorPage() {
                 <TableRow key={investor._id}>
                   <TableCell>{investor.name}</TableCell>
                   <TableCell>{investor.email}</TableCell>
+                  <TableCell>{investor.agent?.name || '-'}</TableCell>
+                  <TableCell>
+                    <Button
+                      className="hover:bg-thmem/90 bg-theme text-white"
+                      onClick={() =>
+                        navigate(
+                          `/dashboard/investor/projects/${investor?._id}`
+                        )
+                      }
+                    >
+                      View
+                    </Button>
+                  </TableCell>
+                  
+                  <TableCell>
+                    <Button
+                      className="hover:bg-thmem/90 bg-theme text-white"
+                      onClick={() =>
+                        navigate(`/dashboard/investors/bank/${investor?._id}`)
+                      }
+                    >
+                      View
+                    </Button>
+                  </TableCell>
+
                   <TableCell className="text-center">
                     <Switch
                       checked={investor.status === 'active'}
@@ -240,5 +265,3 @@ export default function InvestorPage() {
     </div>
   );
 }
-
-

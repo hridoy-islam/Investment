@@ -187,6 +187,7 @@ export default function AgentPage() {
              <TableRow>
                <TableHead>Agent Name</TableHead>
                <TableHead>Email</TableHead>
+               <TableHead>View Referral</TableHead>
                <TableHead className="w-32 text-center">Status</TableHead>
                <TableHead className="w-32 text-center">Actions</TableHead>
              </TableRow>
@@ -196,6 +197,7 @@ export default function AgentPage() {
                <TableRow key={agent._id}>
                  <TableCell>{agent.name}</TableCell>
                  <TableCell>{agent.email}</TableCell>
+                 <TableCell><Button  className="bg-theme text-white hover:bg-thmem/90" onClick={()=> navigate(`/dashboard/agents/referral/${agent?._id}`)} >View</Button></TableCell>
                  <TableCell className="text-center">
                    <Switch
                      checked={agent.status === 'active'}
