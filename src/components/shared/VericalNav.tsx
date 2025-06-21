@@ -9,7 +9,8 @@ import {
   Briefcase as BriefcaseBusiness,
   PoundSterling,
   Package,
-  BookUser
+  BookUser,
+  Calculator
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 
@@ -62,13 +63,14 @@ const VerticalNav = () => {
         ]
       : user?.role === 'investor'
         ? [
+          { name: 'Offers', path: '/dashboard/offers', icon: Package },
             {
               name: 'Projects',
               path: '/dashboard/investor/projects',
               icon: Building
             },
-            { name: 'Offers', path: '/dashboard/offers', icon: Package },
             { name: 'Banks', path: '/dashboard/banks', icon: PoundSterling },
+            { name: 'Transactions', path: '/dashboard/investors/transactions', icon: Calculator },
             { name: 'AML Update', path: '/dashboard/profile/aml', icon: BookUser  }
           ]
         : user?.role === 'agent'

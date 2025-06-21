@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { DataTablePagination } from '@/components/shared/data-table-pagination';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { Badge } from '@/components/ui/badge';
 
 export default function BankPage() {
   const [banks, setBanks] = useState<any[]>([]);
@@ -155,15 +156,22 @@ export default function BankPage() {
         <TableCell>{bank.beneficiaryAddress || '-'}</TableCell>
         <TableCell>{bank.beneficiaryCity || '-'}</TableCell>
         <TableCell>{bank.swift || '-'}</TableCell>
-        <TableCell>
-          <Switch
-            checked={bank.status === 'active'}
-            onCheckedChange={(checked) =>
-              handleStatusChange(bank._id, checked)
-            }
-            className="mx-auto"
-          />
-        </TableCell>
+       <TableCell className="text-center">
+  <div className="flex items-center justify-center gap-2 flex-col">
+    <Switch
+      checked={bank.status === 'active'}
+      onCheckedChange={(checked) => handleStatusChange(bank._id, checked)}
+      className="mx-auto"
+    />
+    
+    <Badge
+      className={`text-sm rounded-full font-semibold ${bank.status === 'active' ? 'bg-green-200 text-green-600' : 'bg-gray-200 text-gray-600'}`}
+    >
+      {bank.status === 'active' ? 'Active' : 'Inactive'}
+    </Badge>
+  </div>
+</TableCell>
+
         <TableCell className="flex justify-end gap-2">
           <Button
             variant="ghost"

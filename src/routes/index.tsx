@@ -30,6 +30,8 @@ import OfferPage from '@/pages/offer';
 import InvestorAccountHistoryPage from '@/pages/investor/account-history';
 import AMLPage from '@/pages/aml';
 import MonthLog from '@/pages/investor/account-history/components/month-log';
+import InvestmentTransactionPage from '@/pages/investment/view-transactions';
+import InvestorTransactionPage from '@/pages/investor/investor-transaction';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -78,6 +80,10 @@ export default function AppRouter() {
           path: 'investors',
           element: <InvestorPage />
         },
+        {
+          path: 'investors/transactions',
+          element: <InvestorTransactionPage />
+        },
          {
           path: 'investor/projects',
           element: <InvestorInvestmentPage />
@@ -110,6 +116,10 @@ export default function AppRouter() {
         {
           path: 'investments/view/:id',
           element: <ViewInvestmentPage />
+        },
+        {
+          path: 'investments/transactions/:id',
+          element: <InvestmentTransactionPage />
         },
         {
           path: 'notifications',

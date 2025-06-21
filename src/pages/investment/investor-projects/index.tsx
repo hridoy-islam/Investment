@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pen, MoveLeft, Eye } from 'lucide-react';
+import { Plus, Pen, MoveLeft, Eye, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -29,13 +29,16 @@ export default function InvestorInvestmentPage() {
   const fetchData = async (page, entriesPerPage, searchTerm = '') => {
     try {
       if (initialLoading) setInitialLoading(true);
-      const response = await axiosInstance.get(`/investment-participants?investorId=${user._id}`, {
-        params: {
-          page,
-          limit: entriesPerPage,
-          ...(searchTerm ? { searchTerm } : {})
+      const response = await axiosInstance.get(
+        `/investment-participants?investorId=${user._id}`,
+        {
+          params: {
+            page,
+            limit: entriesPerPage,
+            ...(searchTerm ? { searchTerm } : {})
+          }
         }
-      });
+      );
       setprojects(response.data.data.result);
       setTotalPages(response.data.data.meta.totalPage);
     } catch (error) {
@@ -45,14 +48,9 @@ export default function InvestorInvestmentPage() {
     }
   };
 
-
-
   const handleSearch = () => {
     fetchData(currentPage, entriesPerPage, searchTerm);
   };
-
-
-
 
   useEffect(() => {
     fetchData(currentPage, entriesPerPage); // Refresh data
@@ -90,7 +88,6 @@ export default function InvestorInvestmentPage() {
             <MoveLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-         
         </div>
       </div>
 
@@ -110,7 +107,7 @@ export default function InvestorInvestmentPage() {
                 <TableHead>Project Name</TableHead>
                 <TableHead>Investment Amount</TableHead>
                 <TableHead>Profit Rate</TableHead>
-                <TableHead>Account Hisotry</TableHead>
+                <TableHead className='text-center'>Account Hisotry</TableHead>
 
                 <TableHead className=" text-end">Actions</TableHead>
               </TableRow>
@@ -121,7 +118,19 @@ export default function InvestorInvestmentPage() {
                   <TableCell>{project.investmentId?.title}</TableCell>
                   <TableCell>{project.amount}£</TableCell>
                   <TableCell>{project?.rate}%</TableCell>
-                  <TableCell><Button onClick={()=> navigate(`/dashboard/investor/projects/account-history/${project?._id}`)} className='bg-theme text-white hover:bg-theme/90'>View</Button></TableCell>
+                  <TableCell className='text-center'>
+                    <Button
+                    size='icon'
+                      onClick={() =>
+                        navigate(
+                          `/dashboard/investor/projects/account-history/${project?._id}`
+                        )
+                      }
+                      className="bg-theme text-white hover:bg-theme/90"
+                    >
+                      <Building2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
 
                   <TableCell className="flex flex-row items-center justify-end gap-2 text-center">
                     <Button
@@ -130,7 +139,7 @@ export default function InvestorInvestmentPage() {
                       size="icon"
                       onClick={() =>
                         navigate(
-                          `/dashboard/projects/view/${project._id}`
+                          `/dashboard/investments/view/${project.investmentId?._id}`
                         )
                       }
                     >
@@ -150,8 +159,6 @@ export default function InvestorInvestmentPage() {
           onPageChange={setCurrentPage}
         />
       </div>
-
-     
     </div>
   );
 }

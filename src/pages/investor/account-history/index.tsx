@@ -23,22 +23,21 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useSelector } from 'react-redux';
 import { useToast } from '@/components/ui/use-toast';
-import { Badge } from '@/components/ui/badge';
 
 export default function InvestorAccountHistoryPage() {
   const { id } = useParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [selectedProfit, setSelectedProfit] = useState<any>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [paidAmount, setPaidAmount] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [note, setNote] = useState('');
   const navigate = useNavigate();
   const { user } = useSelector((state: any) => state.auth);
   const { toast } = useToast();
+  const [transactions, setTransactions] = useState<any[]>([]);
 
-  // Generate 100 years: 50 years before and after current year
   const generateYears = () => {
     const years = [];
     const startYear = currentYear - 50;
@@ -48,13 +47,25 @@ export default function InvestorAccountHistoryPage() {
     return years;
   };
 
-  // Fetch data for selected year
   const fetchData = async () => {
     try {
-      const res = await axiosInstance.get(`/investment-participants/${id}`, {
-        params: { year: currentYear }
-      });
-      setData(res.data?.data || {});
+      setLoading(true);
+      const res = await axiosInstance.get(`/investment-participants/${id}`);
+      const participantData = res.data?.data || {};
+      setData(participantData);
+
+      if (
+        participantData.investorId?._id &&
+        participantData.investmentId?._id
+      ) {
+        const txRes = await axiosInstance.get(`/transactions`, {
+          params: {
+            investorId: participantData.investorId._id,
+            investmentId: participantData.investmentId._id
+          }
+        });
+        setTransactions(txRes.data?.data?.result || []);
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -69,66 +80,68 @@ export default function InvestorAccountHistoryPage() {
   }, [id, currentYear]);
 
   const handlePaymentConfirm = async () => {
-    if (!paidAmount) return;
+    if (!paidAmount || !selectedTransaction) return;
     try {
       const payload = {
-        monthlyProfits: [
-          {
-            _id: selectedProfit._id,
-            month: selectedProfit.month,
+      
+          
+           
+           
             paidAmount: parseFloat(paidAmount),
             note: note
-          }
-        ]
+          
+        
       };
-      await axiosInstance.patch(`/investment-participants/${id}`, payload);
+      await axiosInstance.patch(`/transactions/${selectedTransaction._id}`, payload);
       setIsDialogOpen(false);
       setPaidAmount('');
       setNote('');
-      fetchData(); // Refresh data
-      toast({ title: 'Paid amount successfully' });
+      fetchData();
+      toast({ title: 'Payment recorded successfully' });
     } catch (error) {
       console.error('Error updating payment:', error);
-      setIsDialogOpen(false);
       toast({
-        title: error.response?.data?.message || 'Transaction Failed',
-        className: 'bg-destructive text-white'
+        title: error.response?.data?.message || 'Payment failed',
+        variant: 'destructive'
       });
     }
   };
 
-  // Get ordered list of months
+  const allMonths = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+  ];
+
   const getOrderedMonths = () => {
-    const today = new Date();
-    const currentMonthIndex = today.getMonth();
-    const allMonths = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December'
-    ];
-    // Rotate array so current month is first
+    const now = new Date();
+    const currentMonthIndex = now.getMonth(); // 0-based
     return [
       ...allMonths.slice(currentMonthIndex),
       ...allMonths.slice(0, currentMonthIndex)
     ];
   };
 
-  // Map monthlyProfits to a hash by month key (e.g., '2025-06')
-  const profitMap = {};
-  if (data?.monthlyProfits && Array.isArray(data.monthlyProfits)) {
-    data.monthlyProfits.forEach((item) => {
-      profitMap[item.month] = item;
+  const createTransactionMap = () => {
+    const transactionMap: Record<string, any> = {};
+    transactions.forEach((tx) => {
+      if (tx.month) {
+        transactionMap[tx.month] = tx;
+      }
     });
-  }
+    return transactionMap;
+  };
+
+  const transactionMap = createTransactionMap();
 
   return (
     <Card className="rounded-sm">
@@ -151,7 +164,6 @@ export default function InvestorAccountHistoryPage() {
           <p>No data found.</p>
         ) : (
           <>
-            {/* Info Summary Block */}
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 {
@@ -181,7 +193,6 @@ export default function InvestorAccountHistoryPage() {
               ))}
             </div>
 
-            {/* Year Selector Dropdown */}
             <div className="mb-6 flex items-center justify-start">
               <label htmlFor="year-select" className="mr-2 text-sm font-medium">
                 Select Year:
@@ -203,145 +214,173 @@ export default function InvestorAccountHistoryPage() {
               </Select>
             </div>
 
-            {/* Grid of Monthly Cards (Current Month First) */}
             <div className="grid grid-cols-1 gap-4">
               {getOrderedMonths().map((monthName, idx) => {
-                const monthNumber = String(
-                  idx + (((new Date().getMonth() + idx) % 12) + 1)
-                ).padStart(2, '0');
+                const monthIndex = allMonths.indexOf(monthName); // Get original index
+                const monthNumber = monthIndex + 1;
                 const monthKey = `${currentYear}-${String(monthNumber).padStart(2, '0')}`;
-                const profitItem = profitMap[monthKey];
-                const lastLogIndex = profitItem?.paymentLog?.length - 1;
-                const lastPaymentLog = profitItem?.paymentLog?.[lastLogIndex];
-                const dueAmount = lastPaymentLog?.dueAmount || 0;
-                const status = lastPaymentLog?.status || 'N/A';
+                const transaction = transactionMap[monthKey];
+
+                const profit = transaction?.profit || 0;
+                const dueAmount = transaction?.monthlyTotalDue || 0;
+                const paidAmount = transaction?.monthlyTotalPaid || 0;
+                const status = transaction?.status || 'N/A';
+                const paymentLogs = transaction?.paymentLog || [];
 
                 return (
                   <Card
                     key={idx}
- className={`cursor-pointer border border-gray-200 transition-shadow hover:shadow-lg ${
-    status === 'paid' ? 'bg-green-50' : ''
-  }`}                  >
+                    className={`border border-gray-200 transition-shadow hover:shadow-lg ${
+                      status === 'paid' ? 'bg-green-50' : ''
+                    }`}
+                  >
                     <CardHeader>
-                      <CardTitle className="flex flex-row items-center justify-between text-lg">
+                      <CardTitle className="flex flex-wrap items-center justify-between gap-4 text-lg">
                         <div>{`${monthName} ${currentYear}`}</div>
                         <p className="font-semibold">
-                          <span className="font-medium">Profit:</span> £
-                          {profitItem?.profit || 0}
+                          <span className="font-medium">Profit:</span> £{profit}
                         </p>
-                        {status === 'paid' && (
-                          <p className="font-semibold">
-                           
-                              Paid
-                        
-                          </p>
-                        )}
-
                         <p className="font-semibold">
                           <span className="font-medium">Due:</span> £{dueAmount}
                         </p>
-                        <div>
-                          {user.role === 'admin' && profitItem?.profit && (
-                            <Dialog
-                              open={isDialogOpen}
-                              onOpenChange={setIsDialogOpen}
-                            >
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="border-none bg-theme text-white hover:bg-theme/90"
-                                  onClick={() => {
-                                    setPaidAmount('');
-                                    setNote('');
-                                    setSelectedProfit(profitItem);
-                                  }}
-                                  disabled={status === 'paid'}
-                                >
-                                  Make Payment{' '}
-                                  <PoundSterlingIcon className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>
-                                    Add Payment for {monthName}
-                                  </DialogTitle>
-                                </DialogHeader>
-                                <div className="mt-4 flex flex-col gap-4">
-                                  <div>
-                                    <label className="mb-1 block text-sm font-medium">
-                                      Paid Amount (£)
-                                    </label>
-                                    <Input
-                                      type="number"
-                                      value={paidAmount}
-                                      onChange={(e) =>
-                                        setPaidAmount(e.target.value)
-                                      }
-                                      min="0"
-                                      step="0.01"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="mb-1 block text-sm font-medium">
-                                      Note
-                                    </label>
-                                    <Textarea
-                                      value={note}
-                                      onChange={(e) => setNote(e.target.value)}
-                                      className="border border-gray-300"
-                                    />
-                                  </div>
-                                  <div className="mt-4 flex justify-end space-x-2">
-                                    <Button
-                                      variant="outline"
-                                      onClick={() => setIsDialogOpen(false)}
-                                    >
-                                      Cancel
-                                    </Button>
-                                    <Button
-                                      className="bg-theme text-white hover:bg-theme/90"
-                                      onClick={handlePaymentConfirm}
-                                    >
-                                      Confirm
-                                    </Button>
-                                  </div>
+                        {/* <p className="font-semibold">
+                          <span className="font-medium">Paid:</span> £
+                          {paidAmount}
+                        </p> */}
+                        {status === 'paid' ? (
+                          <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">
+                            Paid
+                          </span>
+                        ) : status === 'partial' ? (
+                          <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-700">
+                            Partial
+                          </span>
+                        ) : status === 'due' && (
+                          <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">
+                            Due
+                          </span>
+                        ) }
+
+                        {user.role === 'admin' && transaction && profit > 0 && (
+                          <Dialog
+                            open={isDialogOpen}
+                            onOpenChange={setIsDialogOpen}
+                          >
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="border-none bg-theme text-white hover:bg-theme/90"
+                                onClick={() => {
+                                  setPaidAmount('');
+                                  setNote('');
+                                  setSelectedTransaction(transaction);
+                                }}
+                                disabled={status === 'paid'}
+                              >
+                                Make Payment{' '}
+                                <PoundSterlingIcon className="ml-2 h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>
+                                  Add Payment for {monthName}
+                                </DialogTitle>
+                              </DialogHeader>
+                              <div className="mt-4 flex flex-col gap-4">
+                                <div>
+                                  <label className="mb-1 block text-sm font-medium">
+                                    Paid Amount (£)
+                                  </label>
+                                  <Input
+                                    type="text"
+                                    
+                                    onChange={(e) =>
+                                      setPaidAmount(e.target.value)
+                                    }
+                                    min="0"
+                                    step="0.01"
+                                  />
                                 </div>
-                              </DialogContent>
-                            </Dialog>
-                          )}
-                        </div>
+                                <div>
+                                  <label className="mb-1 block text-sm font-medium">
+                                    Note
+                                  </label>
+                                  <Textarea
+                                    value={note}
+                                    onChange={(e) => setNote(e.target.value)}
+                                    className="border border-gray-300"
+                                  />
+                                </div>
+                                <div className="mt-4 flex justify-end space-x-2">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => setIsDialogOpen(false)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    className="bg-theme text-white hover:bg-theme/90"
+                                    onClick={handlePaymentConfirm}
+                                  >
+                                    Confirm
+                                  </Button>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        )}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="mt-4 space-y-2">
-                        {profitItem?.paymentLog?.length > 1 &&
-                          profitItem.paymentLog.slice(1).map((log: any) => (
-                            <div
-                              key={log._id}
-                              className="flex px-4 flex-row items-center justify-between rounded-md border border-gray-200 p-2 text-sm shadow-sm hover:shadow-lg"
-                            ><div className='flex flex-row items-start gap-8'>
 
-                              <p>
-                                {new Date(log.createdAt).toLocaleDateString()}
-                              </p>
-                              {log.note && (
-                                <p>
-                                  <span className="font-medium">Note:</span>{' '}
-                                  {log.note}
+                    <CardContent>
+                      {paymentLogs && paymentLogs.length > 1 && (
+                        <div className="mt-4 space-y-2">
+                          <h4 className="font-medium text-gray-700">
+                            Payment History:
+                          </h4>
+                        {paymentLogs.slice(1).map((log, logIndex) => (
+                            <div
+                              key={logIndex}
+                              className="flex flex-col gap-2 rounded-md border border-gray-200 p-3 text-sm shadow-sm hover:shadow-lg sm:flex-row sm:items-center sm:justify-between sm:px-4"
+                            >
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-8">
+                                <p className="text-gray-600">
+                                  {log.createdAt
+                                    ? new Date(
+                                        log.createdAt
+                                      ).toLocaleDateString('en-GB', {
+                                        day: '2-digit',
+                                        month: 'short',
+                                        year: 'numeric'
+                                      })
+                                    : 'N/A'}
                                 </p>
-                              )}
+                                {log.note && (
+                                  <p className="text-gray-800">
+                                    <span className="font-medium text-gray-600">
+                                      Note:
+                                    </span>{' '}
+                                    {log.note}
+                                  </p>
+                                )}
                               </div>
-                              <p>
-                                <span className="font-medium">Amount:</span>{' '}
-                                <span className="font-semibold">
-                                  £{log.paidAmount}
-                                </span>
-                              </p>
+
+                              <div className="flex flex-col items-start sm:items-end">
+                                <p>
+                                  <span className="font-medium text-gray-600">
+                                    Amount Paid:
+                                  </span>{' '}
+                                  <span className="font-semibold text-black">
+                                    £{log.paidAmount?.toFixed(2) || '0.00'}
+                                  </span>
+                                </p>
+                              </div>
                             </div>
                           ))}
-                      </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );

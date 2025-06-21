@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pen, MoveLeft } from 'lucide-react';
+import { Plus, Pen, MoveLeft, Building2, HandCoins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { DataTablePagination } from '@/components/shared/data-table-pagination';
 import { InvestorDialog } from './components/investor-dialog';
 import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 
 export default function InvestorPage() {
   const [investors, setInvestors] = useState<any>([]);
@@ -198,6 +199,7 @@ export default function InvestorPage() {
                   <TableCell>{investor.agent?.name || '-'}</TableCell>
                   <TableCell>
                     <Button
+                    size='icon'
                       className="hover:bg-thmem/90 bg-theme text-white"
                       onClick={() =>
                         navigate(
@@ -205,29 +207,41 @@ export default function InvestorPage() {
                         )
                       }
                     >
-                      View
-                    </Button>
+                      <Building2 className="h-4 w-4"/>
+                    </Button  >
                   </TableCell>
-                  
+
                   <TableCell>
                     <Button
+                    size='icon'
                       className="hover:bg-thmem/90 bg-theme text-white"
                       onClick={() =>
                         navigate(`/dashboard/investors/bank/${investor?._id}`)
                       }
                     >
-                      View
+                        <HandCoins  className="h-4 w-4"/>
                     </Button>
                   </TableCell>
 
                   <TableCell className="text-center">
-                    <Switch
-                      checked={investor.status === 'active'}
-                      onCheckedChange={(checked) =>
-                        handleStatusChange(investor._id, checked)
-                      }
-                      className="mx-auto"
-                    />
+                    <div className="flex flex-col items-center gap-1">
+                      <Switch
+                        checked={investor.status === 'active'}
+                        onCheckedChange={(checked) =>
+                          handleStatusChange(investor._id, checked)
+                        }
+                        className="mx-auto"
+                      />
+                      <Badge
+                        className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                          investor.status === 'active'
+                            ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+                        }`}
+                      >
+                        {investor.status === 'active' ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
                   </TableCell>
                   <TableCell className="text-center">
                     <Button
