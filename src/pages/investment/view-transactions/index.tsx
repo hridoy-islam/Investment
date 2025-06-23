@@ -108,30 +108,29 @@ export default function InvestmentTransactionPage() {
             <h1 className="text-2xl font-bold">
               {transactions[0]?.investmentId?.title}
             </h1>
-            <div className='flex flex-row items-start gap-4'>
-
-            <h1 className="text-2xl font-medium">Transaction History</h1>
-            {/* Year Selector */}
-        <div className="mb-6 flex items-center gap-3">
-          <label htmlFor="year-select" className="text-sm font-medium">
-            Select Year:
-          </label>
-          <Select
-            onValueChange={(value) => setCurrentYear(parseInt(value))}
-            defaultValue={`${currentYear}`}
-          >
-            <SelectTrigger id="year-select" className="w-[120px]">
-              <SelectValue placeholder={currentYear} />
-            </SelectTrigger>
-            <SelectContent>
-              {generateYears().map((year) => (
-                <SelectItem key={year} value={`${year}`}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="flex flex-row items-start gap-4">
+              <h1 className="text-2xl font-medium">Transaction History</h1>
+              {/* Year Selector */}
+              <div className="mb-6 flex items-center gap-3">
+                <label htmlFor="year-select" className="text-sm font-medium">
+                  Select Year:
+                </label>
+                <Select
+                  onValueChange={(value) => setCurrentYear(parseInt(value))}
+                  defaultValue={`${currentYear}`}
+                >
+                  <SelectTrigger id="year-select" className="w-[120px]">
+                    <SelectValue placeholder={currentYear} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {generateYears().map((year) => (
+                      <SelectItem key={year} value={`${year}`}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <Button
@@ -143,8 +142,6 @@ export default function InvestmentTransactionPage() {
             Back
           </Button>
         </div>
-
-        
 
         {loading ? (
           <BlinkingDots size="large" color="bg-theme" />
@@ -183,11 +180,10 @@ export default function InvestmentTransactionPage() {
                     }
                   });
 
-                  // Sort by date
                   allLogs.sort(
                     (a, b) =>
-                      new Date(a.createdAt).getTime() -
-                      new Date(b.createdAt).getTime()
+                      new Date(b.createdAt).getTime() -
+                      new Date(a.createdAt).getTime()
                   );
 
                   return (
@@ -201,7 +197,7 @@ export default function InvestmentTransactionPage() {
                         </CardTitle>
                       </CardHeader>
 
-                      <div className=" space-y-2  px-4 pb-4 -mt-2">
+                      <div className=" -mt-2  space-y-2 px-4 pb-4">
                         {allLogs.length === 0 ? (
                           <p className="text-center text-sm text-gray-500">
                             No logs found.

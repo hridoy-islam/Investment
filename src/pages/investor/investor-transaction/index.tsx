@@ -80,21 +80,10 @@ export default function InvestorTransactionPage() {
       <CardContent className="space-y-3 rounded-md bg-white p-4 shadow-2xl">
         <div className="flex items-center justify-between">
           <div className="flex w-full flex-row items-center justify-between gap-4">
-            <h1 className="text-2xl font-semibold">Transaction Logs</h1>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(-1)}
-              className="bg-theme text-white hover:bg-theme/90"
-            >
-              <MoveLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
-          </div>
-        </div>
+            <div className='flex flex-row items-center gap-6'>
 
-        {/* Year Filter */}
-        <div className="flex justify-end">
+            <h1 className="text-2xl font-semibold">Transaction Logs</h1>
+            <div className="flex justify-end">
           <Select value={selectedYear} onValueChange={setSelectedYear}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Select year" />
@@ -108,6 +97,21 @@ export default function InvestorTransactionPage() {
             </SelectContent>
           </Select>
         </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(-1)}
+              className="bg-theme text-white hover:bg-theme/90"
+            >
+              <MoveLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+          </div>
+        </div>
+
+        {/* Year Filter */}
+        
 
         {/* Transaction List */}
         <div>
