@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pen, MoveLeft, Eye, Building2 } from 'lucide-react';
+import { Plus, Pen, MoveLeft, Eye, Building2, ArrowLeftRightIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -126,9 +126,9 @@ export default function InvestorInvestmentPage() {
                           `/dashboard/investor/projects/account-history/${project?._id}`
                         )
                       }
-                      className="bg-theme text-white hover:bg-theme/90"
+                      className="bg-indigo-500 text-white hover:bg-bg-indigo-500/90"
                     >
-                      <Building2 className="h-4 w-4" />
+                      <ArrowLeftRightIcon className="h-4 w-4" />
                     </Button>
                   </TableCell>
 

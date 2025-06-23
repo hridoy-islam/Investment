@@ -23,6 +23,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useSelector } from 'react-redux';
 import { useToast } from '@/components/ui/use-toast';
+import moment from 'moment';
 
 export default function InvestorAccountHistoryPage() {
   const { id } = useParams();
@@ -37,7 +38,7 @@ export default function InvestorAccountHistoryPage() {
   const { user } = useSelector((state: any) => state.auth);
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<any[]>([]);
- 
+
   const generateYears = () => {
     const years = [];
     const startYear = currentYear - 50;
@@ -46,6 +47,15 @@ export default function InvestorAccountHistoryPage() {
     }
     return years;
   };
+
+  function sortByLatestCreatedAt(data) {
+    return data.sort((a, b) => {
+      const timeA = moment(a.createdAt);
+      const timeB = moment(b.createdAt);
+      return timeB.diff(timeA);
+    });
+  }
+  const sortedItems = sortByLatestCreatedAt(transactions);
 
   const fetchData = async () => {
     try {
@@ -58,12 +68,15 @@ export default function InvestorAccountHistoryPage() {
         participantData.investorId?._id &&
         participantData.investmentId?._id
       ) {
-        const txRes = await axiosInstance.get(`/transactions`, {
-          params: {
-            investorId: participantData.investorId._id,
-            investmentId: participantData.investmentId._id
+        const txRes = await axiosInstance.get(
+          `/transactions?limit=12`,
+          {
+            params: {
+              investorId: participantData.investorId._id,
+              investmentId: participantData.investmentId._id
+            }
           }
-        });
+        );
         setTransactions(txRes.data?.data?.result || []);
       }
     } catch (error) {
@@ -124,7 +137,7 @@ export default function InvestorAccountHistoryPage() {
       setIsDialogOpen(false);
       setPaidAmount('');
       setNote('');
-      toast({ title: 'Payment recorded successfully' });
+      toast({ title: 'Payment Completed successfully' });
     } catch (error) {
       console.error('Error updating payment:', error);
       toast({
@@ -264,27 +277,27 @@ export default function InvestorAccountHistoryPage() {
                     <CardHeader>
                       <CardTitle className="flex flex-wrap items-center justify-between gap-4 text-lg">
                         <div>{`${monthName} ${currentYear}`}</div>
-                        <p className="font-semibold">
-                          <span className="font-medium">Profit:</span> £{profit}
+                        <p className="font-semibold text-blue-500">
+                          <span className="font-medium text-black">Profit:</span> £{profit}
                         </p>
-                        <p className="font-semibold">
-                          <span className="font-medium">Due:</span> £{dueAmount}
+                        <p className="font-semibold text-rose-500">
+                          <span className="font-medium text-black">Due:</span> £{dueAmount}
                         </p>
-                        {/* <p className="font-semibold">
-                          <span className="font-medium">Paid:</span> £
+                        <p className="font-semibold text-green-500">
+                          <span className="font-medium text-black">Paid:</span> £
                           {paidAmount}
-                        </p> */}
+                        </p>
                         {status === 'paid' ? (
-                          <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">
+                          <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-black">
                             Paid
                           </span>
                         ) : status === 'partial' ? (
-                          <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-700">
+                          <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-black">
                             Partial
                           </span>
                         ) : (
                           status === 'due' && (
-                            <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">
+                            <span className="rounded-full bg-red-100 px-4 py-2 text-xs font-semibold text-black">
                               Due
                             </span>
                           )
@@ -363,52 +376,58 @@ export default function InvestorAccountHistoryPage() {
                     </CardHeader>
 
                     <CardContent>
-                      {paymentLogs && paymentLogs.length > 1 && (
+                      {paymentLogs && paymentLogs.length > 0 && (
                         <div className="mt-4 space-y-2">
                           <h4 className="font-medium text-gray-700">
                             Payment History:
                           </h4>
-                          {paymentLogs.map((log, logIndex) => (
-                            <div
-                              key={logIndex}
-                              className="flex flex-col gap-2 rounded-md border border-gray-200 p-3 text-sm shadow-sm hover:shadow-lg sm:flex-row sm:items-center sm:justify-between sm:px-4"
-                            >
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-8">
-                                <p className="text-gray-600">
-                                  {log.createdAt
-                                    ? new Date(
-                                        log.createdAt
-                                      ).toLocaleDateString('en-GB', {
-                                        day: '2-digit',
-                                        month: 'short',
-                                        year: 'numeric'
-                                      })
-                                    : 'N/A'}
-                                </p>
-                                {log.transactionType === 'profitPayment' && (
-                                  <div className="flex flex-row items-center gap-2">
-                                    Payment Initiated{' '}
-                                    {log.note && (
-                                      <p className="text-gray-800">
-                                        ({log.note})
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
+                          {[...paymentLogs]
+                            .sort(
+                              (a, b) =>
+                                new Date(b.createdAt).getTime() -
+                                new Date(a.createdAt).getTime()
+                            )
+                            .map((log, logIndex) => (
+                              <div
+                                key={logIndex}
+                                className="flex flex-col gap-2 rounded-md border border-gray-200 p-3 text-sm shadow-sm  sm:flex-row sm:items-center sm:justify-between sm:px-4"
+                              >
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-8">
+                                  <p className="text-gray-600">
+                                    {log.createdAt
+                                      ? new Date(
+                                          log.createdAt
+                                        ).toLocaleDateString('en-GB', {
+                                          day: '2-digit',
+                                          month: 'short',
+                                          year: 'numeric'
+                                        })
+                                      : 'N/A'}
+                                  </p>
+                                  {log.transactionType === 'profitPayment' && (
+                                    <div className="flex flex-row items-center gap-2">
+                                      Payment Initiated{' '}
+                                      {log.note && (
+                                        <p className="text-gray-800">
+                                          ({log.note})
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
 
-                              <div className="flex flex-col items-start sm:items-end">
-                                <p>
-                                  <span className="font-medium text-gray-600">
-                                    Amount Paid:
-                                  </span>{' '}
-                                  <span className="font-semibold text-black">
-                                    £{log.paidAmount?.toFixed(2) || '0.00'}
-                                  </span>
-                                </p>
+                                <div className="flex flex-col items-start sm:items-end">
+                                  <p>
+                                    <span className="font-medium text-gray-600">
+                                      Amount:
+                                    </span>{' '}
+                                    <span className="font-semibold text-black">
+                                      £{log.paidAmount?.toFixed(2) || '0.00'}
+                                    </span>
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
                         </div>
                       )}
                     </CardContent>

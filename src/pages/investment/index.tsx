@@ -177,7 +177,7 @@ export default function InvestmentPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[60vw]">Project Name</TableHead>
-                <TableHead className=" text-center">Transations</TableHead>
+                <TableHead className=" text-center">Transactions</TableHead>
                 <TableHead className=" text-center">Investors</TableHead>
                 <TableHead className=" text-center">Detail</TableHead>
                 <TableHead className=" text-center">Edit</TableHead>

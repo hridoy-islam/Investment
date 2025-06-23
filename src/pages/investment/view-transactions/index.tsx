@@ -108,19 +108,10 @@ export default function InvestmentTransactionPage() {
             <h1 className="text-2xl font-bold">
               {transactions[0]?.investmentId?.title}
             </h1>
-            <h1 className="text-2xl font-medium">Transaction History</h1>
-          </div>
-          <Button
-            className="bg-theme text-white hover:bg-theme/90"
-            size="sm"
-            onClick={() => navigate(-1)}
-          >
-            <MoveLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-        </div>
+            <div className='flex flex-row items-start gap-4'>
 
-        {/* Year Selector */}
+            <h1 className="text-2xl font-medium">Transaction History</h1>
+            {/* Year Selector */}
         <div className="mb-6 flex items-center gap-3">
           <label htmlFor="year-select" className="text-sm font-medium">
             Select Year:
@@ -141,6 +132,19 @@ export default function InvestmentTransactionPage() {
             </SelectContent>
           </Select>
         </div>
+            </div>
+          </div>
+          <Button
+            className="bg-theme text-white hover:bg-theme/90"
+            size="sm"
+            onClick={() => navigate(-1)}
+          >
+            <MoveLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+        </div>
+
+        
 
         {loading ? (
           <BlinkingDots size="large" color="bg-theme" />
@@ -197,7 +201,7 @@ export default function InvestmentTransactionPage() {
                         </CardTitle>
                       </CardHeader>
 
-                      <div className=" space-y-2  px-4 pb-4 pt-2">
+                      <div className=" space-y-2  px-4 pb-4 -mt-2">
                         {allLogs.length === 0 ? (
                           <p className="text-center text-sm text-gray-500">
                             No logs found.
@@ -206,7 +210,7 @@ export default function InvestmentTransactionPage() {
                           allLogs.map((log, index) => (
                             <div
                               key={index}
-                              className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white px-4 py-1 shadow-sm hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+                              className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white px-4 py-1 shadow-sm  sm:flex-row sm:items-center sm:justify-between"
                             >
                               <div className="flex flex-row gap-4 text-sm text-gray-700">
                                 {log.transactionType === 'profitPayment' ? (

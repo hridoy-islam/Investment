@@ -126,74 +126,70 @@ export default function BankPage() {
             No bank accounts found.
           </div>
         ) : (
-     <Table>
-  <TableHeader>
-    <TableRow>
-      <TableHead>Bank Name</TableHead>
-      <TableHead>Beneficiary Name</TableHead>
-      <TableHead>Account No.</TableHead>
-      <TableHead>Currency</TableHead>
-      <TableHead>Bank Country</TableHead>
-      <TableHead>Beneficiary Country</TableHead>
-      <TableHead>Beneficiary Address</TableHead>
-      <TableHead>City</TableHead>
-      <TableHead>SWIFT/BIC</TableHead>
-      <TableHead>Status</TableHead>
-      <TableHead className="text-end">Actions</TableHead>
-    </TableRow>
-  </TableHeader>
-  <TableBody>
-    {banks.map((bank) => (
-      <TableRow key={bank._id}>
-        <TableCell>{bank.beneficiaryBankName}</TableCell>
-        <TableCell>
-          {bank.beneficiaryFirstName} {bank.beneficiaryLastName}
-        </TableCell>
-        <TableCell>{bank.accountNumber}</TableCell>
-        <TableCell>{bank.currency || '-'}</TableCell>
-        <TableCell>{bank.bankCountry || '-'}</TableCell>
-        <TableCell>{bank.BeneficiaryCountry || '-'}</TableCell>
-        <TableCell>{bank.beneficiaryAddress || '-'}</TableCell>
-        <TableCell>{bank.beneficiaryCity || '-'}</TableCell>
-        <TableCell>{bank.swift || '-'}</TableCell>
-       <TableCell className="text-center">
-  <div className="flex items-center justify-center gap-2 flex-row">
-    <Switch
-      checked={bank.status === 'active'}
-      onCheckedChange={(checked) => handleStatusChange(bank._id, checked)}
-      className="mx-auto"
-    />
-    
-    <Badge
-      className={`text-sm rounded-full font-semibold ${bank.status === 'active' ? 'bg-green-200 text-green-600' : 'bg-gray-200 text-gray-600'}`}
-    >
-      {bank.status === 'active' ? 'Active' : 'Inactive'}
-    </Badge>
-  </div>
-</TableCell>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Bank Name</TableHead>
+                <TableHead>Beneficiary Name</TableHead>
+                <TableHead>Account No.</TableHead>
+                <TableHead>Currency</TableHead>
+                <TableHead>Bank Country</TableHead>
+                <TableHead>Beneficiary Country</TableHead>
+                <TableHead>Beneficiary Address</TableHead>
+                <TableHead>City</TableHead>
+                <TableHead>SWIFT/BIC</TableHead>
+                <TableHead >Edit</TableHead>
+                <TableHead >Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {banks.map((bank) => (
+                <TableRow key={bank._id}>
+                  <TableCell>{bank.beneficiaryBankName}</TableCell>
+                  <TableCell>
+                    {bank.beneficiaryFirstName} {bank.beneficiaryLastName}
+                  </TableCell>
+                  <TableCell>{bank.accountNumber}</TableCell>
+                  <TableCell>{bank.currency || '-'}</TableCell>
+                  <TableCell>{bank.bankCountry || '-'}</TableCell>
+                  <TableCell>{bank.BeneficiaryCountry || '-'}</TableCell>
+                  <TableCell>{bank.beneficiaryAddress || '-'}</TableCell>
+                  <TableCell>{bank.beneficiaryCity || '-'}</TableCell>
+                  <TableCell>{bank.swift || '-'}</TableCell>
 
-        <TableCell className="flex justify-end gap-2">
-          <Button
-            variant="ghost"
-            className="bg-theme text-white hover:bg-theme/90"
-            size="icon"
-            onClick={() => navigate(`/dashboard/banks/view/${bank._id}`)}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            className="bg-theme text-white hover:bg-theme/90"
-            size="icon"
-            onClick={() => navigate(`/dashboard/banks/edit/${bank._id}`)}
-          >
-            <Pen className="h-4 w-4" />
-          </Button>
-        </TableCell>
-      </TableRow>
-    ))}
-  </TableBody>
-</Table>
+                  <TableCell className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      className="bg-theme text-white hover:bg-theme/90"
+                      size="icon"
+                      onClick={() =>
+                        navigate(`/dashboard/banks/edit/${bank._id}`)
+                      }
+                    >
+                      <Pen className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex flex-row items-center justify-center gap-2">
+                      <Switch
+                        checked={bank.status === 'active'}
+                        onCheckedChange={(checked) =>
+                          handleStatusChange(bank._id, checked)
+                        }
+                        className="mx-auto"
+                      />
+
+                      <Badge
+                        className={`rounded-full text-sm font-semibold ${bank.status === 'active' ? 'bg-green-200 text-green-600' : 'bg-gray-200 text-gray-600'}`}
+                      >
+                        {bank.status === 'active' ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
         <DataTablePagination
           pageSize={entriesPerPage}

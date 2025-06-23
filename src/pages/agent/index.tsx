@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pen, MoveLeft, User2, Users2, HandCoins } from 'lucide-react';
+import { Plus, Pen, MoveLeft, User2, Users2, HandCoins, Landmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -187,8 +187,8 @@ export default function AgentPage() {
                 <TableHead>Email</TableHead>
                 <TableHead className='text-center'>View Referral</TableHead>
                 <TableHead className="w-32 text-center">Bank</TableHead>
-                <TableHead className="w-32 text-center">Status</TableHead>
                 <TableHead className="w-32 text-center">Actions</TableHead>
+                <TableHead className="w-32 text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -199,7 +199,7 @@ export default function AgentPage() {
                   <TableCell className='text-center'>
                     <Button
                     size="icon"
-                      className="hover:bg-thmem/90 bg-theme text-white"
+                      className="hover:bg-emerald-500/90 bg-emerald-500 text-white"
                       onClick={() =>
                         navigate(`/dashboard/agents/referral/${agent?._id}`)
                       }
@@ -210,12 +210,22 @@ export default function AgentPage() {
                    <TableCell className='text-center'>
                     <Button
                     size='icon'
-                      className="hover:bg-thmem/90 bg-theme text-white"
+                      className="hover:bg-indigo-500/90 bg-indigo-600 text-white"
                       onClick={() =>
                         navigate(`/dashboard/investors/bank/${agent?._id}`)
                       }
                     >
-                        <HandCoins  className="h-4 w-4"/>
+                        <Landmark  className="h-4 w-4"/>
+                    </Button>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      className="border-none bg-theme text-white hover:bg-theme/90"
+                      size="icon"
+                      onClick={() => handleEdit(agent)}
+                    >
+                      <Pen className="h-4 w-4" />
                     </Button>
                   </TableCell>
                   <TableCell className="text-center">
@@ -237,16 +247,6 @@ export default function AgentPage() {
                         {agent.status === 'active' ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      variant="ghost"
-                      className="border-none bg-theme text-white hover:bg-theme/90"
-                      size="icon"
-                      onClick={() => handleEdit(agent)}
-                    >
-                      <Pen className="h-4 w-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

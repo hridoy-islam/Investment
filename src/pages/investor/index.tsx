@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pen, MoveLeft, Building2, HandCoins } from 'lucide-react';
+import { Plus, Pen, MoveLeft, Building2, HandCoins, Landmark, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -187,8 +187,8 @@ export default function InvestorPage() {
                 <TableHead>Agent</TableHead>
                 <TableHead>Projects</TableHead>
                 <TableHead>Banks</TableHead>
-                <TableHead className="w-32 text-center">Status</TableHead>
                 <TableHead className="w-32 text-center">Actions</TableHead>
+                <TableHead className="w-32 text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -200,29 +200,39 @@ export default function InvestorPage() {
                   <TableCell>
                     <Button
                     size='icon'
-                      className="hover:bg-thmem/90 bg-theme text-white"
+                      className="hover:bg-emerald-500/90 bg-emerald-500 text-white"
                       onClick={() =>
                         navigate(
                           `/dashboard/investor/projects/${investor?._id}`
                         )
                       }
                     >
-                      <Building2 className="h-4 w-4"/>
+                      <Building className="h-4 w-4"/>
                     </Button  >
                   </TableCell>
 
                   <TableCell>
                     <Button
                     size='icon'
-                      className="hover:bg-thmem/90 bg-theme text-white"
+                      className="hover:bg-indigo-500/90 bg-indigo-500 text-white"
                       onClick={() =>
                         navigate(`/dashboard/investors/bank/${investor?._id}`)
                       }
                     >
-                        <HandCoins  className="h-4 w-4"/>
+                        <Landmark  className="h-4 w-4"/>
                     </Button>
                   </TableCell>
 
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      className="border-none bg-theme text-white hover:bg-theme/90"
+                      size="icon"
+                      onClick={() => handleEdit(investor)}
+                    >
+                      <Pen className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                   <TableCell className="text-center">
                     <div className="flex flex-row items-center gap-1">
                       <Switch
@@ -242,16 +252,6 @@ export default function InvestorPage() {
                         {investor.status === 'active' ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      variant="ghost"
-                      className="border-none bg-theme text-white hover:bg-theme/90"
-                      size="icon"
-                      onClick={() => handleEdit(investor)}
-                    >
-                      <Pen className="h-4 w-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

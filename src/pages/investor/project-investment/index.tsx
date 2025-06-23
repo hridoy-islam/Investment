@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { DataTablePagination } from '@/components/shared/data-table-pagination';
 import { Button } from '@/components/ui/button';
-import { Eye, FolderClock, MoveLeft } from 'lucide-react';
+import { ArrowLeftRight, Eye, FolderClock, MoveLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -111,8 +111,8 @@ export default function InvestmentProjectPage() {
                 <TableHead>Investment Amount</TableHead>
                 <TableHead>Profit Rate</TableHead>
                 <TableHead className="text-center">Account History</TableHead>
+                <TableHead className="text-center">Action</TableHead>
                 <TableHead className="text-center w-32">Status</TableHead>
-                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -153,9 +153,24 @@ export default function InvestmentProjectPage() {
                           `/dashboard/investor/projects/account-history/${project?._id}`
                         )
                       }
-                      className="bg-theme text-white hover:bg-theme/90"
+                      className="bg-emerald-500 text-white hover:bg-emerald-500/90"
                     >
-                      <FolderClock />
+                      <ArrowLeftRight className="h-4 w-4"   />
+                    </Button>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {' '}
+                    <Button
+                      variant="ghost"
+                      className="border-none bg-theme text-white hover:bg-theme/90"
+                      size="icon"
+                      onClick={() =>
+                        navigate(
+                          `/dashboard/investments/view/${project?.investmentId?._id}`
+                        )
+                      }
+                    >
+                      <Eye className="h-4 w-4" />
                     </Button>
                   </TableCell>
                   <TableCell className="text-center flex flex-row items-center gap-1">
@@ -176,21 +191,6 @@ export default function InvestmentProjectPage() {
                       >
                         {project.status === 'active' ? 'Active' : 'Inactive'}
                       </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {' '}
-                    <Button
-                      variant="ghost"
-                      className="border-none bg-theme text-white hover:bg-theme/90"
-                      size="icon"
-                      onClick={() =>
-                        navigate(
-                          `/dashboard/investments/view/${project?.investmentId?._id}`
-                        )
-                      }
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
