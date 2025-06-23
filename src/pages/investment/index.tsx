@@ -245,7 +245,7 @@ export default function InvestmentPage() {
                     </Button>
                   </TableCell>
                   <TableCell className="text-center">
-                    <div className="flex flex-col items-center gap-1">
+                    <div className="flex flex-row items-center gap-1">
                       <Switch
                         checked={investment.status === 'active'}
                         onCheckedChange={(checked) =>

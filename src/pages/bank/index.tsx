@@ -157,7 +157,7 @@ export default function BankPage() {
         <TableCell>{bank.beneficiaryCity || '-'}</TableCell>
         <TableCell>{bank.swift || '-'}</TableCell>
        <TableCell className="text-center">
-  <div className="flex items-center justify-center gap-2 flex-col">
+  <div className="flex items-center justify-center gap-2 flex-row">
     <Switch
       checked={bank.status === 'active'}
       onCheckedChange={(checked) => handleStatusChange(bank._id, checked)}

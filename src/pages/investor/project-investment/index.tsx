@@ -13,9 +13,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { DataTablePagination } from '@/components/shared/data-table-pagination';
 import { Button } from '@/components/ui/button';
-import { Eye, MoveLeft } from 'lucide-react';
+import { Eye, FolderClock, MoveLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 
 export default function InvestmentProjectPage() {
   const { id } = useParams();
@@ -25,7 +26,7 @@ export default function InvestmentProjectPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
-const {toast} = useToast()
+  const { toast } = useToast();
   const fetchData = async (pageNumber = 1, limit = 10, searchTerm = '') => {
     try {
       // Fetch agent by ID
@@ -59,18 +60,21 @@ const {toast} = useToast()
   }, [id, currentPage, entriesPerPage]);
   const navigate = useNavigate();
 
-  
-    const handleStatusChange = async (id, status) => {
-      try {
-        const updatedStatus = status ? "active" : "block";
-        await axiosInstance.patch(`/investment-participants/${id}`, { status: updatedStatus });
-        toast({ title: "Investor status successfully", className: "bg-theme border-none text-white", });
-        fetchData(currentPage, entriesPerPage);
-      } catch (error) {
-        console.error("Error updating status:", error);
-      }
-    };
-
+  const handleStatusChange = async (id, status) => {
+    try {
+      const updatedStatus = status ? 'active' : 'block';
+      await axiosInstance.patch(`/investment-participants/${id}`, {
+        status: updatedStatus
+      });
+      toast({
+        title: 'Investor status successfully',
+        className: 'bg-theme border-none text-white'
+      });
+      fetchData(currentPage, entriesPerPage);
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  };
 
   return (
     <Card>
@@ -106,8 +110,8 @@ const {toast} = useToast()
                 <TableHead>Project Title</TableHead>
                 <TableHead>Investment Amount</TableHead>
                 <TableHead>Profit Rate</TableHead>
-                <TableHead>Account History</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="text-center">Account History</TableHead>
+                <TableHead className="text-center w-32">Status</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -141,16 +145,38 @@ const {toast} = useToast()
                   >
                     {project?.rate}%
                   </TableCell>
-                  <TableCell><Button onClick={()=> navigate(`/dashboard/investor/projects/account-history/${project?._id}`)} className='bg-theme text-white hover:bg-theme/90'>View</Button></TableCell>
                   <TableCell className="text-center">
-                   <Switch
-                     checked={project.status === 'active'}
-                     onCheckedChange={(checked) =>
-                       handleStatusChange(project._id, checked)
-                     }
-                     className="mx-auto"
-                   />
-                 </TableCell>
+                    <Button
+                      size="icon"
+                      onClick={() =>
+                        navigate(
+                          `/dashboard/investor/projects/account-history/${project?._id}`
+                        )
+                      }
+                      className="bg-theme text-white hover:bg-theme/90"
+                    >
+                      <FolderClock />
+                    </Button>
+                  </TableCell>
+                  <TableCell className="text-center flex flex-row items-center gap-1">
+                   
+                      <Switch
+                        checked={project.status === 'active'}
+                        onCheckedChange={(checked) =>
+                          handleStatusChange(project._id, checked)
+                        }
+                        className="mx-auto"
+                      />
+                      <Badge
+                        className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                          project.status === 'active'
+                            ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+                        }`}
+                      >
+                        {project.status === 'active' ? 'Active' : 'Inactive'}
+                      </Badge>
+                  </TableCell>
                   <TableCell className="text-right">
                     {' '}
                     <Button

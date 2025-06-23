@@ -93,7 +93,7 @@ const VerticalNav = () => {
     <aside
       className={`${
         isExpanded ? 'w-64' : 'w-16'
-      } fixed bottom-0 left-0 top-16 z-[10000] h-full overflow-hidden bg-white  transition-all duration-300 ease-in-out`}
+      } fixed bottom-0 left-0 top-16 z-[100] h-full overflow-hidden bg-white  transition-all duration-300 ease-in-out`}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >

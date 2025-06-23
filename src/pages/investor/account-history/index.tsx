@@ -37,7 +37,7 @@ export default function InvestorAccountHistoryPage() {
   const { user } = useSelector((state: any) => state.auth);
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<any[]>([]);
-
+ 
   const generateYears = () => {
     const years = [];
     const startYear = currentYear - 50;
@@ -83,20 +83,47 @@ export default function InvestorAccountHistoryPage() {
     if (!paidAmount || !selectedTransaction) return;
     try {
       const payload = {
-      
-          
-           
-           
-            paidAmount: parseFloat(paidAmount),
-            note: note
-          
-        
+        paidAmount: parseFloat(paidAmount),
+        note: note
       };
-      await axiosInstance.patch(`/transactions/${selectedTransaction._id}`, payload);
+      await axiosInstance.patch(
+        `/transactions/${selectedTransaction._id}`,
+        payload
+      );
+
+      //  Optimistically update the transactions array
+      setTransactions((prevTransactions) =>
+        prevTransactions.map((tx) =>
+          tx._id === selectedTransaction._id
+            ? {
+                ...tx,
+                monthlyTotalPaid:
+                  (tx.monthlyTotalPaid || 0) + payload.paidAmount,
+                status:
+                  payload.paidAmount >= tx.monthlyTotalDue ? 'paid' : 'partial',
+                paymentLog: [
+                  ...(tx.paymentLog || []),
+                  {
+                    paidAmount: payload.paidAmount,
+                    note: payload.note,
+                    createdAt: new Date().toISOString(),
+                    transactionType: 'profitPayment'
+                  }
+                ]
+              }
+            : tx
+        )
+      );
+
+      //  Optionally update totalPaid in data
+      setData((prevData: any) => ({
+        ...prevData,
+        totalPaid: (prevData.totalPaid || 0) + payload.paidAmount
+      }));
+
       setIsDialogOpen(false);
       setPaidAmount('');
       setNote('');
-      fetchData();
       toast({ title: 'Payment recorded successfully' });
     } catch (error) {
       console.error('Error updating payment:', error);
@@ -255,11 +282,13 @@ export default function InvestorAccountHistoryPage() {
                           <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-700">
                             Partial
                           </span>
-                        ) : status === 'due' && (
-                          <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">
-                            Due
-                          </span>
-                        ) }
+                        ) : (
+                          status === 'due' && (
+                            <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">
+                              Due
+                            </span>
+                          )
+                        )}
 
                         {user.role === 'admin' && transaction && profit > 0 && (
                           <Dialog
@@ -295,7 +324,6 @@ export default function InvestorAccountHistoryPage() {
                                   </label>
                                   <Input
                                     type="text"
-                                    
                                     onChange={(e) =>
                                       setPaidAmount(e.target.value)
                                     }
@@ -340,7 +368,7 @@ export default function InvestorAccountHistoryPage() {
                           <h4 className="font-medium text-gray-700">
                             Payment History:
                           </h4>
-                        {paymentLogs.slice(1).map((log, logIndex) => (
+                          {paymentLogs.map((log, logIndex) => (
                             <div
                               key={logIndex}
                               className="flex flex-col gap-2 rounded-md border border-gray-200 p-3 text-sm shadow-sm hover:shadow-lg sm:flex-row sm:items-center sm:justify-between sm:px-4"
@@ -357,13 +385,15 @@ export default function InvestorAccountHistoryPage() {
                                       })
                                     : 'N/A'}
                                 </p>
-                                {log.note && (
-                                  <p className="text-gray-800">
-                                    <span className="font-medium text-gray-600">
-                                      Note:
-                                    </span>{' '}
-                                    {log.note}
-                                  </p>
+                                {log.transactionType === 'profitPayment' && (
+                                  <div className="flex flex-row items-center gap-2">
+                                    Payment Initiated{' '}
+                                    {log.note && (
+                                      <p className="text-gray-800">
+                                        ({log.note})
+                                      </p>
+                                    )}
+                                  </div>
                                 )}
                               </div>
 

@@ -40,7 +40,8 @@ export default function InvestorTransactionPage() {
           month: transaction.month,
           createdAt: log.createdAt,
           paidAmount: log.paidAmount,
-          note: log.note
+          note: log.note,
+          transactionType: log.transactionType
         }))
       );
 
@@ -52,16 +53,16 @@ export default function InvestorTransactionPage() {
       setLoading(false);
     }
   };
-useEffect(() => {
-  const filtered = allTransactions
-    .filter((tx) => tx.month?.startsWith(selectedYear))
-    .sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    ); 
+  useEffect(() => {
+    const filtered = allTransactions
+      .filter((tx) => tx.month?.startsWith(selectedYear))
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
 
-  setTransactions(filtered);
-}, [selectedYear, allTransactions]);
-
+    setTransactions(filtered);
+  }, [selectedYear, allTransactions]);
 
   useEffect(() => {
     if (user._id) {
@@ -123,14 +124,25 @@ useEffect(() => {
               {transactions.map((log, index) => (
                 <div
                   key={index}
-                  className="flex flex-col gap-1 rounded-md border border-gray-200 bg-gray-50 py-1  px-4 shadow-sm hover:bg-gray-100 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-1 rounded-md border border-gray-200 bg-gray-50 px-4  py-1 shadow-sm hover:bg-gray-100 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex flex-row items-center gap-8 text-sm text-gray-700">
                     <p className="font-semibold">
-                      {new Date(log.createdAt).toLocaleDateString()}
+                      {new Date(log.createdAt).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
                     </p>
+
                     <p className="font-semibold">{log.investmentTitle}</p>
-                    <p className="italic text-gray-600">{log.note || ''}</p>
+                    {log.transactionType === 'profitPayment' ? (
+                      <div className="italic text-gray-600">
+                        Payment Initiated{log.note ? ` (${log.note})` : ''}
+                      </div>
+                    ) : (
+                      <p className="italic text-gray-600">{log.note || ''}</p>
+                    )}
                   </div>
                   <div className="text-right font-semibold text-gray-900">
                     £{log.paidAmount || 0}

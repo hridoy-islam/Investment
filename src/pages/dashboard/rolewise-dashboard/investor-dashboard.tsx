@@ -74,7 +74,7 @@ export function InvestorDashboard({ user }) {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {/* Total Projects Card */}
         <motion.div
-          className="rounded-2xl border border-gray-100 bg-white p-6 shadow"
+          className="rounded-2xl border border-gray-100 bg-white p-6 shadow cursor-pointer"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.6 }}
@@ -94,7 +94,7 @@ export function InvestorDashboard({ user }) {
 
         {/* Total Invested Amount */}
         <motion.div
-          className="rounded-2xl border border-gray-100 bg-white p-6 shadow"
+          className="rounded-2xl border border-gray-100 bg-white p-6 shadow cursor-pointer"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.4 }}
@@ -112,7 +112,7 @@ export function InvestorDashboard({ user }) {
           )}
         </motion.div>
         <motion.div
-          className="rounded-2xl border border-gray-100 bg-white p-6 shadow"
+          className="rounded-2xl border border-gray-100 bg-white p-6 shadow cursor-pointer"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.4 }}
@@ -129,7 +129,7 @@ export function InvestorDashboard({ user }) {
           )}
         </motion.div>
         <motion.div
-          className="rounded-2xl border border-gray-100 bg-white p-6 shadow"
+          className="rounded-2xl border border-gray-100 bg-white p-6 shadow cursor-pointer"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.4 }}

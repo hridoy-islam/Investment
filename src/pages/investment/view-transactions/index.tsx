@@ -99,134 +99,169 @@ export default function InvestmentTransactionPage() {
 
   const monthWiseMap = getMonthWiseTransactions();
 
-return (
-  <Card className="rounded-md border-none bg-white shadow-sm">
-    <CardContent className="px-4 py-6 sm:px-6">
-      {/* Header */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">
-            {transactions[0]?.investmentId?.title}
-          </h1>
-          <h1 className="text-2xl font-medium">Transaction History</h1>
+  return (
+    <Card className="rounded-md border-none bg-white shadow-sm">
+      <CardContent className="px-4 py-6 sm:px-6">
+        {/* Header */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">
+              {transactions[0]?.investmentId?.title}
+            </h1>
+            <h1 className="text-2xl font-medium">Transaction History</h1>
+          </div>
+          <Button
+            className="bg-theme text-white hover:bg-theme/90"
+            size="sm"
+            onClick={() => navigate(-1)}
+          >
+            <MoveLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
         </div>
-        <Button
-          className="bg-theme text-white hover:bg-theme/90"
-          size="sm"
-          onClick={() => navigate(-1)}
-        >
-          <MoveLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-      </div>
 
-      {/* Year Selector */}
-      <div className="mb-6 flex items-center gap-3">
-        <label htmlFor="year-select" className="text-sm font-medium">
-          Select Year:
-        </label>
-        <Select
-          onValueChange={(value) => setCurrentYear(parseInt(value))}
-          defaultValue={`${currentYear}`}
-        >
-          <SelectTrigger id="year-select" className="w-[120px]">
-            <SelectValue placeholder={currentYear} />
-          </SelectTrigger>
-          <SelectContent>
-            {generateYears().map((year) => (
-              <SelectItem key={year} value={`${year}`}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+        {/* Year Selector */}
+        <div className="mb-6 flex items-center gap-3">
+          <label htmlFor="year-select" className="text-sm font-medium">
+            Select Year:
+          </label>
+          <Select
+            onValueChange={(value) => setCurrentYear(parseInt(value))}
+            defaultValue={`${currentYear}`}
+          >
+            <SelectTrigger id="year-select" className="w-[120px]">
+              <SelectValue placeholder={currentYear} />
+            </SelectTrigger>
+            <SelectContent>
+              {generateYears().map((year) => (
+                <SelectItem key={year} value={`${year}`}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      {loading ? (
-        <BlinkingDots size="large" color="bg-theme" />
-      ) : (
-        <>
-          {transactions.length === 0 ? (
-            <p className="mb-6 text-sm text-gray-600">
-              No transaction data found for {currentYear}.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-5">
-              {getOrderedMonths().map((monthName, idx) => {
-                const monthNumber = allMonths.indexOf(monthName) + 1;
-                const monthKey = `${currentYear}-${String(monthNumber).padStart(2, '0')}`;
-                const monthTransactions = monthWiseMap[monthKey] || [];
+        {loading ? (
+          <BlinkingDots size="large" color="bg-theme" />
+        ) : (
+          <>
+            {transactions.length === 0 ? (
+              <p className="mb-6 text-sm text-gray-600">
+                No transaction data found for {currentYear}.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 gap-5">
+                {getOrderedMonths().map((monthName, idx) => {
+                  const monthNumber = allMonths.indexOf(monthName) + 1;
+                  const monthKey = `${currentYear}-${String(monthNumber).padStart(2, '0')}`;
+                  const monthTransactions = monthWiseMap[monthKey] || [];
 
-                // Flatten logs
-                const allLogs = [];
-                monthTransactions.forEach((tx) => {
-                  if (tx.paymentLog && tx.paymentLog.length > 0) {
-                    tx.paymentLog.forEach((log) => {
-                      allLogs.push({
-                        ...log,
-                        investorName: tx.investorId?.name,
-                        createdAt: log.createdAt || tx.createdAt,
-                        paidAmount: log.paidAmount,
-                        note: log.note,
+                  const allLogs: Array<{
+                    investorName?: string;
+                    createdAt?: string;
+                    paidAmount?: number;
+                    note?: string;
+                    [key: string]: any;
+                  }> = [];
+                  monthTransactions.forEach((tx) => {
+                    if (tx.paymentLog && tx.paymentLog.length > 0) {
+                      tx.paymentLog.forEach((log: any) => {
+                        allLogs.push({
+                          ...log,
+                          investorName: tx.investorId?.name,
+                          createdAt: log.createdAt || tx.createdAt,
+                          paidAmount: log.paidAmount,
+                          note: log.note,
+                          transactionType: log.transactionType
+                        });
                       });
-                    });
-                  }
-                });
+                    }
+                  });
 
-                // Sort by date
-                allLogs.sort(
-                  (a, b) =>
-                    new Date(a.createdAt).getTime() -
-                    new Date(b.createdAt).getTime()
-                );
+                  // Sort by date
+                  allLogs.sort(
+                    (a, b) =>
+                      new Date(a.createdAt).getTime() -
+                      new Date(b.createdAt).getTime()
+                  );
 
-                return (
-                  <Card
-                    key={idx}
-                    className="rounded-md border border-gray-200 shadow-sm"
-                  >
-                    <CardHeader>
-                      <CardTitle className="text-lg font-semibold">
-                        {monthName} {currentYear}
-                      </CardTitle>
-                    </CardHeader>
+                  return (
+                    <Card
+                      key={idx}
+                      className="rounded-md border border-gray-200 shadow-sm"
+                    >
+                      <CardHeader>
+                        <CardTitle className="text-lg font-semibold">
+                          {monthName} {currentYear}
+                        </CardTitle>
+                      </CardHeader>
 
-                    <div className="max-h-[300px] overflow-y-auto space-y-2 px-4 pb-4 pt-2">
-                      {allLogs.length === 0 ? (
-                        <p className="text-center text-sm text-gray-500">
-                          No logs found.
-                        </p>
-                      ) : (
-                        allLogs.map((log, index) => (
-                          <div
-                            key={index}
-                            className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white px-4 py-1 shadow-sm hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
-                          >
-                            <div className="text-sm text-gray-700 flex flex-row gap-4">
-                              <p className="font-medium">
-                                {moment(log?.createdAt).format('MMMM D, YYYY')}
-                              </p>
-                              <p className='font-semibold'>{log.investorName}</p>
-                              <p className="italic text-gray-600">
-                                {log?.note || ''}
-                              </p>
+                      <div className=" space-y-2  px-4 pb-4 pt-2">
+                        {allLogs.length === 0 ? (
+                          <p className="text-center text-sm text-gray-500">
+                            No logs found.
+                          </p>
+                        ) : (
+                          allLogs.map((log, index) => (
+                            <div
+                              key={index}
+                              className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white px-4 py-1 shadow-sm hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+                            >
+                              <div className="flex flex-row gap-4 text-sm text-gray-700">
+                                {log.transactionType === 'profitPayment' ? (
+                                  <p className="font-medium">
+                                    {moment(log?.createdAt).format(
+                                      'D MMM YYYY'
+                                    )}{' '}
+                                    - Payment Initiated To{' '}
+                                    <span className="font-semibold">
+                                      {log.investorName}
+                                    </span>
+                                    {log?.note && (
+                                      <>
+                                        {' '}
+                                        -{' '}
+                                        <span className="italic text-gray-600">
+                                          ({log.note})
+                                        </span>
+                                      </>
+                                    )}
+                                  </p>
+                                ) : (
+                                  <>
+                                    <p className="font-medium">
+                                      {moment(log?.createdAt).format(
+                                        'D MMM YYYY'
+                                      )}
+                                    </p>
+                                    <p className="font-semibold">
+                                      {log.investorName}
+                                    </p>
+                                    <p className="italic text-gray-600">
+                                      {log?.note || ''}
+                                    </p>
+                                  </>
+                                )}
+                              </div>
+
+                              <div className="text-right font-semibold text-gray-900">
+                                {log.paidAmount > 0
+                                  ? `Amount: £${log.paidAmount}`
+                                  : '-'}
+                              </div>
                             </div>
-                            <div className="text-right font-semibold text-gray-900">
-                              {log.paidAmount > 0 ? `Amount: £${log.paidAmount}` : '-'}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
-    </CardContent>
-  </Card>
-);
-
+                          ))
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
 }

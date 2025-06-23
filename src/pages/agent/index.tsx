@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pen, MoveLeft, User2, Users2 } from 'lucide-react';
+import { Plus, Pen, MoveLeft, User2, Users2, HandCoins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -186,6 +186,7 @@ export default function AgentPage() {
                 <TableHead>Agent Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead className='text-center'>View Referral</TableHead>
+                <TableHead className="w-32 text-center">Bank</TableHead>
                 <TableHead className="w-32 text-center">Status</TableHead>
                 <TableHead className="w-32 text-center">Actions</TableHead>
               </TableRow>
@@ -206,8 +207,19 @@ export default function AgentPage() {
                       <Users2 className='h-4 w-4'/>
                     </Button>
                   </TableCell>
+                   <TableCell className='text-center'>
+                    <Button
+                    size='icon'
+                      className="hover:bg-thmem/90 bg-theme text-white"
+                      onClick={() =>
+                        navigate(`/dashboard/investors/bank/${agent?._id}`)
+                      }
+                    >
+                        <HandCoins  className="h-4 w-4"/>
+                    </Button>
+                  </TableCell>
                   <TableCell className="text-center">
-                    <div className="flex flex-col items-center gap-1">
+                    <div className="flex flex-row items-center gap-1">
                       <Switch
                         checked={agent.status === 'active'}
                         onCheckedChange={(checked) =>

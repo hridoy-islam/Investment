@@ -240,7 +240,7 @@ const filteredInvestorOptions = investors.filter(
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 -top-8 z-[10000] flex items-center justify-center bg-black bg-opacity-50">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
             <h3 className="mb-4 text-lg font-semibold">Add Investor</h3>
             <form onSubmit={handleSubmit(onSubmit)}>

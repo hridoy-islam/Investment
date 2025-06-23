@@ -17,7 +17,7 @@ export default function AdminLayout({
   // }
 
   return (
- <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
+ <div className="h-screen flex flex-col bg-gray-100 overflow-hidden ">
   <AutoLogout inactivityLimit={30 * 60 * 1000} />
   <TopNav />
 
