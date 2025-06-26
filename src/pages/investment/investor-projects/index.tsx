@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pen, MoveLeft, Eye, Building2, ArrowLeftRightIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -12,83 +11,69 @@ import {
 } from '@/components/ui/table';
 import axiosInstance from '@/lib/axios';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
-import { Input } from '@/components/ui/input';
 import { DataTablePagination } from '@/components/shared/data-table-pagination';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 export default function InvestorInvestmentPage() {
-  const [projects, setprojects] = useState<any>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [investments, setInvestments] = useState<any[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const { user } = useSelector((state: any) => state.auth);
+  const navigate = useNavigate();
 
-  const fetchData = async (page, entriesPerPage, searchTerm = '') => {
+  const fetchInvestments = async () => {
     try {
-      if (initialLoading) setInitialLoading(true);
-      const response = await axiosInstance.get(
-        `/investment-participants?investorId=${user._id}`,
-        {
-          params: {
-            page,
-            limit: entriesPerPage,
-            ...(searchTerm ? { searchTerm } : {})
-          }
-        }
-      );
-      setprojects(response.data.data.result);
-      setTotalPages(response.data.data.meta.totalPage);
-    } catch (error) {
-      console.error('Error fetching institutions:', error);
-    } finally {
-      setInitialLoading(false); // Disable initial loading after the first fetch
+      const res = await axiosInstance.get('/investments');
+      setInvestments(res.data.data.result);
+    } catch (err) {
+      console.error('Error fetching investments:', err);
     }
   };
 
-  const handleSearch = () => {
-    fetchData(currentPage, entriesPerPage, searchTerm);
+  const fetchProjects = async (page: number, limit: number, searchTerm = '') => {
+    try {
+      if (initialLoading) setInitialLoading(true);
+      const res = await axiosInstance.get(`/investment-participants?investorId=${user._id}`, {
+        params: { page, limit, ...(searchTerm ? { searchTerm } : {}) }
+      });
+      setProjects(res.data.data.result);
+      setTotalPages(res.data.data.meta.totalPage);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+    } finally {
+      setInitialLoading(false);
+    }
   };
 
   useEffect(() => {
-    fetchData(currentPage, entriesPerPage); // Refresh data
+    fetchInvestments();
+    fetchProjects(currentPage, entriesPerPage);
   }, [currentPage, entriesPerPage]);
 
-  const navigate = useNavigate();
+  const calculateRate = (amount: number, investmentId: string) => {
+    const investment = investments.find(inv => inv._id === investmentId);
+    if (!investment || !investment.amountRequired) return 'N/A';
+    const rate = (100 * amount) / investment.amountRequired;
+    return `${rate.toFixed(2)}%`;
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className="flex flex-row items-center gap-4">
-          <h1 className="text-2xl font-semibold">Project List</h1>
-          {/* <div className="flex items-center space-x-4">
-            <Input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by project name"
-              className="h-8 max-w-[400px]"
-            />
-            <Button
-              onClick={handleSearch}
-              size="sm"
-              className="min-w-[100px] border-none bg-theme text-white hover:bg-theme/90"
-            >
-              Search
-            </Button>
-          </div> */}
-        </div>
-        <div className="flex flex-row items-center gap-4">
-          <Button
-            className="border-none bg-theme text-white hover:bg-theme/90"
-            size={'sm'}
-            onClick={() => navigate('/dashboard')}
-          >
-            <MoveLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-        </div>
+        <h1 className="text-2xl font-semibold">Project List</h1>
+        <Button
+          className="border-none bg-theme text-white hover:bg-theme/90"
+          size="sm"
+          onClick={() => navigate('/dashboard')}
+        >
+          <MoveLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
       </div>
 
       <div className="rounded-md bg-white p-4 shadow-2xl">
@@ -107,40 +92,34 @@ export default function InvestorInvestmentPage() {
                 <TableHead>Project Name</TableHead>
                 <TableHead>Investment Amount</TableHead>
                 <TableHead>Profit Rate</TableHead>
-                <TableHead className='text-center'>Account Hisotry</TableHead>
-
-                <TableHead className=" text-end">Actions</TableHead>
+                <TableHead className="text-center">Account History</TableHead>
+                <TableHead className="text-end">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {projects.map((project) => (
-                <TableRow key={project._id}>
-                  <TableCell>{project.investmentId?.title}</TableCell>
-                  <TableCell>{project.amount}£</TableCell>
-                  <TableCell>{project?.rate}%</TableCell>
-                  <TableCell className='text-center'>
+              {projects.map(project => (
+                <TableRow key={project?._id}>
+                  <TableCell>{project?.investmentId?.title}</TableCell>
+                  <TableCell>£{project?.amount}</TableCell>
+                  <TableCell>{calculateRate(project?.amount, project?.investmentId?._id)}</TableCell>
+                  <TableCell className="text-center">
                     <Button
-                    size='icon'
+                      size="icon"
                       onClick={() =>
-                        navigate(
-                          `/dashboard/investor/projects/account-history/${project?._id}`
-                        )
+                        navigate(`/dashboard/investor/projects/account-history/${project._id}`)
                       }
-                      className="bg-indigo-500 text-white hover:bg-bg-indigo-500/90"
+                      className="bg-indigo-500 text-white hover:bg-indigo-500/90"
                     >
                       <ArrowLeftRightIcon className="h-4 w-4" />
                     </Button>
                   </TableCell>
-
-                  <TableCell className="flex flex-row items-center justify-end gap-2 text-center">
+                  <TableCell className="flex flex-row items-center justify-end gap-2">
                     <Button
                       variant="ghost"
                       className="border-none bg-theme text-white hover:bg-theme/90"
                       size="icon"
                       onClick={() =>
-                        navigate(
-                          `/dashboard/investments/view/${project.investmentId?._id}`
-                        )
+                        navigate(`/dashboard/investments/view/${project.investmentId?._id}`)
                       }
                     >
                       <Eye className="h-4 w-4" />

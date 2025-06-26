@@ -9,7 +9,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoveLeft, Eye, PlusCircle } from 'lucide-react';
+import { MoveLeft, Eye, PlusCircle, Pen } from 'lucide-react';
 import { DataTablePagination } from '@/components/shared/data-table-pagination';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import Select from 'react-select';
@@ -44,6 +44,8 @@ export default function ViewInvestorPage() {
     useState<InvestorOption | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [project, setProject] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingParticipant, setEditingParticipant] = useState<any>(null);
 
   const { id } = useParams(); // investmentId
   const navigate = useNavigate();
@@ -91,21 +93,36 @@ export default function ViewInvestorPage() {
     }
   };
 
-  const onSubmit = async (data: { amount: any; rate: number }) => {
-    if (!selectedInvestor?.value) return;
-
+  const onSubmit = async (data: {
+    amount: number;
+    agentCommissionRate: number;
+  }) => {
     setSubmitLoading(true);
+
     try {
-      await axiosInstance.post('/investment-participants', {
-        investorId: selectedInvestor.value,
-        investmentId: id,
-        rate: data.rate,
-        amount: data.amount
-      });
-      fetchParticipants(currentPage, entriesPerPage); // Refresh table
+      if (isEditMode && editingParticipant) {
+        await axiosInstance.patch(
+          `/investment-participants/${editingParticipant._id}`,
+          {
+            agentCommissionRate: Number(data.agentCommissionRate),
+            amount: Number(data.amount)
+          }
+        );
+      } else {
+        if (!selectedInvestor?.value) return;
+
+        await axiosInstance.post('/investment-participants', {
+          investorId: selectedInvestor.value,
+          investmentId: id,
+          agentCommissionRate: Number(data.agentCommissionRate),
+          amount: Number(data.amount)
+        });
+      }
+
+      fetchParticipants(currentPage, entriesPerPage); // Refresh list
       closeModal();
     } catch (error) {
-      console.error('Error adding participant:', error);
+      console.error('Error submitting participant:', error);
     } finally {
       setSubmitLoading(false);
     }
@@ -118,13 +135,15 @@ export default function ViewInvestorPage() {
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setIsEditMode(false);
     setSelectedInvestor(null);
+    setEditingParticipant(null);
     reset();
   };
 
   const { handleSubmit, control, reset } = useForm({
     defaultValues: {
-      rate: 0,
+      agentCommissionRate: 0,
       amount: 0
     }
   });
@@ -134,13 +153,14 @@ export default function ViewInvestorPage() {
     fetchProject();
   }, [currentPage, entriesPerPage]);
 
-  const addedInvestorIds = participants.map(p => p.investorId?._id);
+  const addedInvestorIds = participants.map((p) => p.investorId?._id);
 
-{/* Filter investors not yet added */}
-const filteredInvestorOptions = investors.filter(
-  (investor) => !addedInvestorIds.includes(investor.value)
-);
-
+  {
+    /* Filter investors not yet added */
+  }
+  const filteredInvestorOptions = investors.filter(
+    (investor) => !addedInvestorIds.includes(investor.value)
+  );
 
   return (
     <div className="space-y-6">
@@ -186,8 +206,9 @@ const filteredInvestorOptions = investors.filter(
                 <TableHead>Email</TableHead>
                 <TableHead>Investment Title</TableHead>
                 <TableHead>Investment Amount</TableHead>
-                <TableHead>Rate</TableHead>
-                <TableHead className="text-center">Action</TableHead>
+                <TableHead>Agent Commission %</TableHead>
+                <TableHead>Share</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -203,12 +224,37 @@ const filteredInvestorOptions = investors.filter(
                     {participant.investmentId?.title || 'N/A'}
                   </TableCell>
                   <TableCell>
-                   £{participant?.amount || 'N/A'}
+                    £
+                    {typeof participant?.amount === 'number'
+                      ? participant.amount.toFixed(2)
+                      : '—'}
                   </TableCell>
                   <TableCell>
-                    {participant?.rate || 'N/A'}%
+                    {participant?.agentCommissionRate || '-'}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell>
+                    {participant?.amount && project?.amountRequired
+                      ? `${((participant.amount * 100) / project.amountRequired).toFixed(2)}%`
+                      : '—'}
+                  </TableCell>
+                  <TableCell className="flex flex-row justify-end gap-4 text-right">
+                    <Button
+                      variant="ghost"
+                      className="bg-theme text-white hover:bg-theme/90"
+                      size="icon"
+                      onClick={() => {
+                        setEditingParticipant(participant);
+                        setIsEditMode(true);
+                        setIsModalOpen(true);
+                        reset({
+                          amount: participant.amount,
+                          agentCommissionRate: participant.agentCommissionRate
+                        });
+                      }}
+                    >
+                      <Pen className="h-4 w-4" />
+                    </Button>
+
                     <Button
                       variant="ghost"
                       className="bg-theme text-white hover:bg-theme/90"
@@ -244,19 +290,32 @@ const filteredInvestorOptions = investors.filter(
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
             <h3 className="mb-4 text-lg font-semibold">Add Investor</h3>
             <form onSubmit={handleSubmit(onSubmit)}>
-              <div className="mb-4">
-                <label className="mb-2 block text-sm font-medium">
-                  Select Investor
-                </label>
-                <Select
-                  options={filteredInvestorOptions}
-                  value={selectedInvestor}
-                  onChange={(option) => setSelectedInvestor(option)}
-                  placeholder="Search investor..."
-                />
-              </div>
+              {isEditMode ? (
+                <div className="mb-4">
+                  <label className="mb-2 block text-sm font-medium">
+                    Investor
+                  </label>
+                  <input
+                    className="w-full rounded border border-gray-300 bg-gray-100 px-3 py-2"
+                    value={`${editingParticipant?.investorId?.name} (${editingParticipant?.investorId?.email})`}
+                    disabled
+                  />
+                </div>
+              ) : (
+                <div className="mb-4">
+                  <label className="mb-2 block text-sm font-medium">
+                    Select Investor
+                  </label>
+                  <Select
+                    options={filteredInvestorOptions}
+                    value={selectedInvestor}
+                    onChange={(option) => setSelectedInvestor(option)}
+                    placeholder="Search investor..."
+                  />
+                </div>
+              )}
 
-              {selectedInvestor && (
+              {(selectedInvestor || isEditMode) && (
                 <div>
                   <div className="mb-4">
                     <label className="mb-2 block text-sm font-medium">
@@ -270,7 +329,7 @@ const filteredInvestorOptions = investors.filter(
                         <input
                           type="number"
                           {...field}
-                          className="w-full rounded border px-3 py-2 border-gray-300"
+                          className="w-full rounded border border-gray-300 px-3 py-2"
                           placeholder="Enter Amount"
                           min="0"
                           step="0.01"
@@ -280,18 +339,18 @@ const filteredInvestorOptions = investors.filter(
                   </div>
                   <div className="mb-4">
                     <label className="mb-2 block text-sm font-medium">
-                      Rate (%)
+                      Agent Commission (%)
                     </label>
                     <Controller
-                      name="rate"
+                      name="agentCommissionRate"
                       control={control}
                       rules={{ required: true, min: 0 }}
                       render={({ field }) => (
                         <input
                           type="number"
                           {...field}
-                          className="w-full rounded border px-3 py-2 border-gray-300"
-                          placeholder="Enter rate"
+                          className="w-full rounded border border-gray-300 px-3 py-2"
+                          placeholder="Enter commission rate"
                           min="0"
                           step="0.01"
                         />
@@ -313,7 +372,7 @@ const filteredInvestorOptions = investors.filter(
                 <Button
                   type="submit"
                   className="bg-theme text-white hover:bg-theme/90"
-                  disabled={!selectedInvestor || submitLoading}
+                  disabled={(!selectedInvestor && !isEditMode) || submitLoading}
                 >
                   {submitLoading ? <BlinkingDots size="small" /> : 'Add'}
                 </Button>

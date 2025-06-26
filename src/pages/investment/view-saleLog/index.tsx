@@ -15,7 +15,7 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import moment from 'moment';
 
-export default function InvestmentTransactionPage() {
+export default function SaleLogTransactionPage() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -184,15 +184,13 @@ export default function InvestmentTransactionPage() {
                     [key: string]: any;
                   }> = [];
                   monthTransactions.forEach((tx) => {
-                    if (tx.paymentLog && tx.paymentLog.length > 0) {
-                      tx.paymentLog.forEach((log: any) => {
+                    if (tx.logs && tx.logs.length > 0) {
+                      tx.logs.forEach((log: any) => {
                         allLogs.push({
                           ...log,
                           investorName: tx.investorId?.name,
                           createdAt: log.createdAt || tx.createdAt,
-                          paidAmount: log.paidAmount,
-                          note: log.note,
-                          transactionType: log.transactionType
+                          note: log.message // using message from TransactionLog as note
                         });
                       });
                     }
@@ -227,39 +225,8 @@ export default function InvestmentTransactionPage() {
                               className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white px-4 py-1 shadow-sm  sm:flex-row sm:items-center sm:justify-between"
                             >
                               <div className="flex flex-row gap-4 text-sm text-gray-700">
-                                {log.transactionType === 'profitPayment' ? (
-                                  <p className="font-medium">
-                                    {moment(log?.createdAt).format(
-                                      'D MMM YYYY'
-                                    )}{' '}
-                                    - Payment Initiated To{' '}
-                                    <span className="font-semibold">
-                                      {log.investorName}
-                                    </span>
-                                    {log?.note && (
-                                      <>
-                                        {' '}
-                                        -{' '}
-                                        <span className="italic text-gray-600">
-                                          ({log.note})
-                                        </span>
-                                      </>
-                                    )}
-                                  </p>
-                                ) : log.transactionType === 'investment' ? (
-                                  <p className="font-medium">
-                                    {moment(log?.createdAt).format(
-                                      'D MMM YYYY'
-                                    )}{' '}
-                                    -{' '}
-                                    <span className="font-semibold text-green-600">
-                                      <span className="font-semibold text-gray-600">
-                                      {log.investorName} {' '}{'-'}
-                                    </span> Initial investment successfully created
-                                    </span>
-                                  </p>
-                                ) : (
-                                  <>
+                                
+                                  
                                     <p className="font-medium">
                                       {moment(log?.createdAt).format(
                                         'D MMM YYYY'
@@ -271,16 +238,11 @@ export default function InvestmentTransactionPage() {
                                     <p className="italic text-gray-600">
                                       {log?.note || ''}
                                     </p>
-                                  </>
-                                )}
+                                
+                             
                               </div>
-                              {log.transactionType === 'investment' && (
-                                <div className="text-right font-semibold text-gray-900">
-                                  {log?.paidAmount > 0
-                                    ? `Amount: £${log.paidAmount}`
-                                    : '-'}
-                                </div>
-                              )}
+
+                              
                             </div>
                           ))
                         )}

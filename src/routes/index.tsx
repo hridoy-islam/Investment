@@ -32,6 +32,7 @@ import AMLPage from '@/pages/aml';
 import MonthLog from '@/pages/investor/account-history/components/month-log';
 import InvestmentTransactionPage from '@/pages/investment/view-transactions';
 import InvestorTransactionPage from '@/pages/investor/investor-transaction';
+import SaleLogTransactionPage from '@/pages/investment/view-saleLog';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -120,6 +121,10 @@ export default function AppRouter() {
         {
           path: 'investments/transactions/:id',
           element: <InvestmentTransactionPage />
+        },
+        {
+          path: 'investments/transactions/sale-log/:id',
+          element: <SaleLogTransactionPage />
         },
         {
           path: 'notifications',

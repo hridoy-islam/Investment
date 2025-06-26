@@ -48,7 +48,7 @@ export default function OfferPage() {
   const [selectedInvestment, setSelectedInvestment] =
     useState<InvestmentOffer | null>(null);
   const [amount, setAmount] = useState('');
-  const [rate, setRate] = useState('');
+  
   const [showModal, setShowModal] = useState(false);
   const { toast } = useToast();
   const fetchData = async () => {
@@ -91,14 +91,14 @@ export default function OfferPage() {
         investorId: user._id,
         investmentId: selectedInvestment._id,
         amount,
-        rate
+    
       });
 
       toast({ title: 'Investment successful!' });
       fetchData();
       setShowModal(false);
       setAmount('');
-      setRate('');
+    
       setSelectedInvestment(null);
     } catch (err) {
       console.error('Error submitting investment:', err);
@@ -237,15 +237,7 @@ export default function OfferPage() {
                   onChange={(e) => setAmount(e.target.value)}
                 />
               </div>
-              <div>
-                <Label>Rate</Label>
-                <Input
-                  type="text"
-                  placeholder="Enter rate (e.g., 15%)"
-                  value={rate}
-                  onChange={(e) => setRate(e.target.value)}
-                />
-              </div>
+              
             </div>
             <div className="flex justify-end gap-2">
               <Button
@@ -253,7 +245,7 @@ export default function OfferPage() {
                 onClick={() => {
                   setShowModal(false);
                   setAmount('');
-                  setRate('');
+                 
                   setSelectedInvestment(null);
                 }}
               >

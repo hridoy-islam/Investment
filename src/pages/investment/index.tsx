@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pen, MoveLeft, Eye, Users, ArrowLeftRight } from 'lucide-react';
+import {
+  Plus,
+  Pen,
+  MoveLeft,
+  Eye,
+  Users,
+  ArrowLeftRight,
+  BadgePoundSterling,
+  PoundSterling,
+  Wallet,
+  Handshake
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -15,81 +26,71 @@ import { useToast } from '@/components/ui/use-toast';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { Input } from '@/components/ui/input';
 import { DataTablePagination } from '@/components/shared/data-table-pagination';
-import { investmentDialog } from './components/investment-dialog';
-import { useNavigate } from 'react-router-dom';
-import { InvestmentDialog } from './components/invesment-dialog';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { useNavigate } from 'react-router-dom';
 
 export default function InvestmentPage() {
   const [investments, setInvestments] = useState<any>([]);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [editingInvestment, setEditingInvestment] = useState<any>();
+  const [selectedAmountRequired, setSelectedAmountRequired] =
+    useState<number>(0);
+  // Raise Capital Dialog States
+  const [raiseCapitalDialogOpen, setRaiseCapitalDialogOpen] = useState(false);
+  const [selectedInvestmentId, setSelectedInvestmentId] = useState<
+    string | null
+  >(null);
+  const [raiseAmount, setRaiseAmount] = useState<number | ''>('');
+  const [raiseLoading, setRaiseLoading] = useState(false);
+  const [selectedCurrentAmountRequired, setSelectedCurrentAmountRequired] =
+    useState<number>(0);
+
+  // Set Sale Price Dialog States
+  const [salePriceDialogOpen, setSalePriceDialogOpen] = useState(false);
+  const [salePrice, setSalePrice] = useState<number | ''>('');
+  const [salePriceLoading, setSalePriceLoading] = useState(false);
+
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
 
-  const fetchData = async (page, entriesPerPage, searchTerm = '') => {
+  const navigate = useNavigate();
+  const [count, setCount] = useState(0);
+
+  const increment = () => setCount((prev) => prev + 1);
+
+  const fetchData = async (page, limit, searchTerm = '') => {
     try {
-      if (initialLoading) setInitialLoading(true);
+      setInitialLoading(true);
       const response = await axiosInstance.get(`/investments`, {
         params: {
           page,
-          limit: entriesPerPage,
+          limit,
           ...(searchTerm ? { searchTerm } : {})
         }
       });
-      setInvestments(response.data.data.result);
-      setTotalPages(response.data.data.meta.totalPage);
+      setInvestments(response.data?.data?.result || []);
+      setTotalPages(response.data?.data?.meta?.totalPage || 1);
     } catch (error) {
-      console.error('Error fetching institutions:', error);
+      console.error('Error fetching investments:', error);
     } finally {
-      setInitialLoading(false); // Disable initial loading after the first fetch
+      setInitialLoading(false);
     }
   };
 
-  const handleSubmit = async (data) => {
-    try {
-      let response;
-      if (editingInvestment) {
-        response = await axiosInstance.patch(
-          `/investments/${editingInvestment?._id}`,
-          data
-        );
-      } else {
-        response = await axiosInstance.post(`/investments`, data);
-      }
-
-      if (response.data && response.data.success === true) {
-        toast({
-          title: response.data.message || 'Investments created successfully',
-          className: 'bg-theme border-none text-white'
-        });
-      } else if (response.data && response.data.success === false) {
-        toast({
-          title: response.data.message || 'Operation failed',
-          className: 'bg-red-500 border-none text-white'
-        });
-      } else {
-        toast({
-          title: 'Unexpected response. Please try again.',
-          className: 'bg-red-500 border-none text-white'
-        });
-      }
-
-      // Refresh data
-      fetchData(currentPage, entriesPerPage);
-      setEditingInvestment(undefined); // Reset editing state
-    } catch (error) {
-      toast({
-        title: 'An error occurred. Please try again.',
-        className: 'bg-red-500 border-none text-white'
-      });
-    }
-  };
+  useEffect(() => {
+    fetchData(currentPage, entriesPerPage);
+  }, [currentPage, entriesPerPage, count]);
 
   const handleSearch = () => {
     fetchData(currentPage, entriesPerPage, searchTerm);
@@ -108,19 +109,120 @@ export default function InvestmentPage() {
       fetchData(currentPage, entriesPerPage);
     } catch (error) {
       console.error('Error updating status:', error);
+      toast({
+        title: 'Failed to update status.',
+        variant: 'destructive'
+      });
     }
   };
 
   const handleEdit = (data) => {
     setEditingInvestment(data);
-    setDialogOpen(true);
+    navigate(`/dashboard/investments/edit/${data._id}`);
   };
 
-  useEffect(() => {
-    fetchData(currentPage, entriesPerPage); // Refresh data
-  }, [currentPage, entriesPerPage]);
+  // Raise Capital Handlers
+  const handleRaiseCapitalClick = (investment) => {
+    setSelectedInvestmentId(investment._id);
+    setRaiseAmount('');
+    setSelectedCurrentAmountRequired(investment.amountRequired || 0);
+    setRaiseCapitalDialogOpen(true);
+  };
 
-  const navigate = useNavigate();
+  const updatedAmountRequired =
+    typeof raiseAmount === 'number' && raiseAmount >= 0
+      ? selectedCurrentAmountRequired + raiseAmount
+      : selectedCurrentAmountRequired;
+
+  const handleRaiseCapitalSubmit = async () => {
+    if (
+      !selectedInvestmentId ||
+      typeof raiseAmount !== 'number' ||
+      raiseAmount <= 0
+    )
+      return;
+
+    setRaiseLoading(true);
+    try {
+      const response = await axiosInstance.patch(
+        `/investments/${selectedInvestmentId}`,
+        {
+          amountRequired: raiseAmount
+        }
+      );
+      increment();
+      if (response.data.success) {
+        toast({
+          title: 'Success',
+          description: 'Capital requirement updated successfully.',
+          className: 'bg-theme border-none text-white'
+        });
+      } else {
+        throw new Error('Update failed');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update capital requirement.',
+        variant: 'destructive'
+      });
+    } finally {
+      setRaiseCapitalDialogOpen(false);
+      setRaiseAmount('');
+      setRaiseLoading(false);
+    }
+  };
+
+  // Set Sale Price Handlers
+  const handleSetSalePriceClick = (investment) => {
+    setSelectedInvestmentId(investment._id);
+    setSalePrice(investment.saleAmount || '');
+    setSelectedAmountRequired(investment.amountRequired || 0);
+    setSalePriceDialogOpen(true);
+  };
+
+  const grossProfit =
+    typeof salePrice === 'number' ? salePrice - selectedAmountRequired : null;
+
+  const handleSetSalePriceSubmit = async () => {
+    if (
+      !selectedInvestmentId ||
+      typeof salePrice !== 'number' ||
+      salePrice <= 0
+    )
+      return;
+
+    setSalePriceLoading(true);
+    try {
+      const response = await axiosInstance.patch(
+        `/investments/${selectedInvestmentId}`,
+        {
+          saleAmount: salePrice
+        }
+      );
+      increment();
+      if (response.data.success) {
+        toast({
+          title: 'Success',
+          description: 'Sale price updated successfully.',
+          className: 'bg-theme border-none text-white'
+        });
+      } else {
+        throw new Error('Update failed');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update sale price.',
+        variant: 'destructive'
+      });
+    } finally {
+      setSalePriceDialogOpen(false);
+      setSalePrice('');
+      setSalePriceLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -176,18 +278,56 @@ export default function InvestmentPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[60vw]">Project Name</TableHead>
-                <TableHead className=" text-center">Transactions</TableHead>
-                <TableHead className=" text-center">Investors</TableHead>
-                <TableHead className=" text-center">Detail</TableHead>
-                <TableHead className=" text-center">Edit</TableHead>
-                <TableHead className=" text-center">Status</TableHead>
+                <TableHead className="w-[40vw]">Project Name</TableHead>
+                <TableHead>Investment Amount</TableHead>
+                <TableHead className="text-center">Sale/CMV</TableHead>
+                <TableHead className="text-center">Raise Capital</TableHead>
+                <TableHead className="text-center">Sale Log</TableHead>
+                <TableHead className="text-center">Payment Log</TableHead>
+                <TableHead className="text-center">Investors</TableHead>
+                <TableHead className="text-center">Detail</TableHead>
+                <TableHead className="text-center">Edit</TableHead>
+                <TableHead className="text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {investments.map((investment) => (
                 <TableRow key={investment._id}>
                   <TableCell>{investment.title}</TableCell>
+                  <TableCell>
+                    {investment?.amountRequired?.toFixed(2) || 'N/A'}
+                  </TableCell>
+                  <TableCell  className="text-center">
+                    <Button
+                      size="icon"
+                      onClick={() => handleSetSalePriceClick(investment)}
+                      className="bg-red-600 text-white hover:bg-red-600/90"
+                    >
+                      <Handshake className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button
+                      size="icon"
+                      onClick={() => handleRaiseCapitalClick(investment)}
+                      className="hover:bg-indigo/90 bg-emerald-600 text-white"
+                    >
+                      <PoundSterling className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button
+                      size="icon"
+                      onClick={() =>
+                        navigate(
+                          `/dashboard/investments/transactions/sale-log/${investment._id}`
+                        )
+                      }
+                      className="hover:bg-indigo/90 bg-indigo-600 text-white"
+                    >
+                      <ArrowLeftRight className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                   <TableCell className="text-center">
                     <Button
                       size="icon"
@@ -196,12 +336,11 @@ export default function InvestmentPage() {
                           `/dashboard/investments/transactions/${investment._id}`
                         )
                       }
-                      className="hover:bg-indigo/90 bg-indigo-600 text-white"
+                      className="hover:bg-indigo/90 bg-lime-600 text-white"
                     >
-                      <ArrowLeftRight className="h-4 w-4" />
+                      <Wallet className="h-4 w-4" />
                     </Button>
                   </TableCell>
-
                   <TableCell className="text-center">
                     <Button
                       size="icon"
@@ -210,12 +349,11 @@ export default function InvestmentPage() {
                           `/dashboard/investments/participant/${investment._id}`
                         )
                       }
-                      className="bg-emerald-500 text-white hover:bg-emerald-500/90"
+                      className="bg-sky-600 text-white hover:bg-sky-600/90"
                     >
                       <Users className="h-4 w-4" />
                     </Button>
                   </TableCell>
-
                   <TableCell className="text-center">
                     <Button
                       variant="ghost"
@@ -235,11 +373,7 @@ export default function InvestmentPage() {
                       variant="ghost"
                       className="border-none bg-theme text-white hover:bg-theme/90"
                       size="icon"
-                      onClick={() =>
-                        navigate(
-                          `/dashboard/investments/edit/${investment._id}`
-                        )
-                      }
+                      onClick={() => handleEdit(investment)}
                     >
                       <Pen className="h-4 w-4" />
                     </Button>
@@ -278,15 +412,124 @@ export default function InvestmentPage() {
         />
       </div>
 
-      <InvestmentDialog
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) setEditingInvestment(undefined);
-        }}
-        onSubmit={handleSubmit}
-        initialData={editingInvestment}
-      />
+      {/* Raise Capital Dialog */}
+      <Dialog
+        open={raiseCapitalDialogOpen}
+        onOpenChange={setRaiseCapitalDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Raise Capital</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {updatedAmountRequired !== null && (
+              <div className="text-sm font-medium text-gray-700">
+                Amount:{' '}
+                <span className="font-semibold">
+                  £{updatedAmountRequired.toFixed(2)}
+                </span>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="amountRequired">Raise Amount(£)</Label>
+              <Input
+                id="amountRequired"
+                type="number"
+                step="any"
+                min="0"
+                value={raiseAmount}
+                onChange={(e) =>
+                  setRaiseAmount(
+                    e.target.value ? parseFloat(e.target.value) : ''
+                  )
+                }
+                placeholder="Enter required amount"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setRaiseCapitalDialogOpen(false)}
+                disabled={raiseLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-theme text-white hover:bg-theme/90"
+                onClick={handleRaiseCapitalSubmit}
+                disabled={
+                  raiseLoading ||
+                  typeof raiseAmount !== 'number' ||
+                  raiseAmount <= 0
+                }
+              >
+                {raiseLoading ? 'Submitting...' : 'Submit'}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set Sale Price Dialog */}
+      <Dialog open={salePriceDialogOpen} onOpenChange={setSalePriceDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete your sell</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 ">
+            <div className="space-y-2">
+              {grossProfit !== null && (
+                <div className=" pb-4 font-medium text-gray-700 ">
+                  Gross Profit:{' '}
+                  <span className="font-semibold">
+                    £{grossProfit.toFixed(2)}
+                  </span>
+                </div>
+              )}
+
+              <Label htmlFor="salePrice">Sale Price (£)</Label>
+              <Input
+                id="salePrice"
+                type="number"
+                step="any"
+                min="0"
+                value={salePrice}
+                onChange={(e) =>
+                  setSalePrice(e.target.value ? parseFloat(e.target.value) : '')
+                }
+                placeholder="Enter sale price"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSalePriceDialogOpen(false)}
+                disabled={salePriceLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-theme text-white hover:bg-theme/90"
+                onClick={handleSetSalePriceSubmit}
+                disabled={
+                  salePriceLoading ||
+                  typeof salePrice !== 'number' ||
+                  salePrice <= 0
+                }
+              >
+                {salePriceLoading ? 'Submitting...' : 'Submit'}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
