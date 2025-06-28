@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { DataTablePagination } from '@/components/shared/data-table-pagination';
 import { Button } from '@/components/ui/button';
-import { MoveLeft } from 'lucide-react';
+import { MoveLeft, Wallet } from 'lucide-react';
 
 export default function ReferralPage() {
   const { id } = useParams();
@@ -52,27 +52,27 @@ export default function ReferralPage() {
       fetchData(currentPage, entriesPerPage);
     }
   }, [id, currentPage, entriesPerPage]);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   return (
     <Card>
       <CardContent>
         <div className="flex flex-row items-center justify-between">
-            <div className="space-y-2 py-4">
-              {agent && (
-                  <p className="text-xl font-semibold">Agent: {agent?.name}</p>
-              )}
-              <h1 className="text-xl font-semibold">Referrals</h1>
-            </div>
+          <div className="space-y-2 py-4">
+            {agent && (
+              <p className="text-xl font-semibold">Agent: {agent?.name}</p>
+            )}
+            <h1 className="text-xl font-semibold">Referrals</h1>
+          </div>
           <div>
-             <Button
-           className="border-none bg-theme text-white hover:bg-theme/90"
-           size={'sm'}
-           onClick={() => navigate('/dashboard/agents')}
-         >
-           <MoveLeft className="mr-2 h-4 w-4" />
-           Back
-         </Button>
+            <Button
+              className="border-none bg-theme text-white hover:bg-theme/90"
+              size={'sm'}
+              onClick={() => navigate('/dashboard/agents')}
+            >
+              <MoveLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
           </div>
         </div>
 
@@ -87,6 +87,7 @@ export default function ReferralPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead className="text-right">Account History</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -95,19 +96,34 @@ export default function ReferralPage() {
                   <TableCell>{user?.name}</TableCell>
                   <TableCell>{user?.email}</TableCell>
                   <TableCell className="capitalize">{user.role}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        navigate(
+                          `/dashboard/agents/referral/account-history/${user._id}`
+                        )
+                      }
+                      className="hover:bg-indigo/90 bg-lime-600 text-white"
+                    >
+                      <Wallet className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
-        { referrals.length >0 && <DataTablePagination
-          pageSize={entriesPerPage}
-          setPageSize={setEntriesPerPage}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        /> }
-        
+        {referrals.length > 0 && (
+          <DataTablePagination
+            pageSize={entriesPerPage}
+            setPageSize={setEntriesPerPage}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </CardContent>
     </Card>
   );

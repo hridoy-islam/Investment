@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pen, MoveLeft, User2, Users2, HandCoins, Landmark } from 'lucide-react';
+import { Plus, Pen, MoveLeft, User2, Users2, HandCoins, Landmark, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -185,6 +185,7 @@ export default function AgentPage() {
               <TableRow>
                 <TableHead>Agent Name</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead className="w-32 text-center">Transactions</TableHead>
                 <TableHead className='text-center'>View Referral</TableHead>
                 <TableHead className="w-32 text-center">Bank</TableHead>
                 <TableHead className="w-32 text-center">Actions</TableHead>
@@ -196,10 +197,19 @@ export default function AgentPage() {
                 <TableRow key={agent._id}>
                   <TableCell>{agent.name}</TableCell>
                   <TableCell>{agent.email}</TableCell>
+                  <TableCell className='text-center '><Button
+                    size="icon"
+                      className="hover:bg-emerald-500/90 bg-emerald-500 text-white"
+                      onClick={() =>
+                        navigate(`/dashboard/agent/transactions/${agent?._id}`)
+                      }
+                    >
+                      <Wallet className='h-4 w-4'/>
+                    </Button></TableCell>
                   <TableCell className='text-center'>
                     <Button
                     size="icon"
-                      className="hover:bg-emerald-500/90 bg-emerald-500 text-white"
+                      className="hover:bg-sky-500/90 bg-sky-500 text-white"
                       onClick={() =>
                         navigate(`/dashboard/agents/referral/${agent?._id}`)
                       }

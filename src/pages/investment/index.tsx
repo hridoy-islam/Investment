@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
+import moment from 'moment';
 
 export default function InvestmentPage() {
   const [investments, setInvestments] = useState<any>([]);
@@ -52,6 +53,7 @@ export default function InvestmentPage() {
   const [raiseLoading, setRaiseLoading] = useState(false);
   const [selectedCurrentAmountRequired, setSelectedCurrentAmountRequired] =
     useState<number>(0);
+  const [selectedProjectName, setSelectedProjectName] = useState('');
 
   // Set Sale Price Dialog States
   const [salePriceDialogOpen, setSalePriceDialogOpen] = useState(false);
@@ -126,6 +128,7 @@ export default function InvestmentPage() {
     setSelectedInvestmentId(investment._id);
     setRaiseAmount('');
     setSelectedCurrentAmountRequired(investment.amountRequired || 0);
+    setSelectedProjectName(investment.title || ''); // Add this
     setRaiseCapitalDialogOpen(true);
   };
 
@@ -178,6 +181,7 @@ export default function InvestmentPage() {
     setSelectedInvestmentId(investment._id);
     setSalePrice(investment.saleAmount || '');
     setSelectedAmountRequired(investment.amountRequired || 0);
+    setSelectedProjectName(investment.title || ''); // <- new line
     setSalePriceDialogOpen(true);
   };
 
@@ -282,8 +286,8 @@ export default function InvestmentPage() {
                 <TableHead>Investment Amount</TableHead>
                 <TableHead className="text-center">Sale/CMV</TableHead>
                 <TableHead className="text-center">Raise Capital</TableHead>
-                <TableHead className="text-center">Sale Log</TableHead>
-                <TableHead className="text-center">Payment Log</TableHead>
+                
+                <TableHead className="text-center">Transaction Log</TableHead>
                 <TableHead className="text-center">Investors</TableHead>
                 <TableHead className="text-center">Detail</TableHead>
                 <TableHead className="text-center">Edit</TableHead>
@@ -297,7 +301,7 @@ export default function InvestmentPage() {
                   <TableCell>
                     {investment?.amountRequired?.toFixed(2) || 'N/A'}
                   </TableCell>
-                  <TableCell  className="text-center">
+                  <TableCell className="text-center">
                     <Button
                       size="icon"
                       onClick={() => handleSetSalePriceClick(investment)}
@@ -315,19 +319,7 @@ export default function InvestmentPage() {
                       <PoundSterling className="h-4 w-4" />
                     </Button>
                   </TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      size="icon"
-                      onClick={() =>
-                        navigate(
-                          `/dashboard/investments/transactions/sale-log/${investment._id}`
-                        )
-                      }
-                      className="hover:bg-indigo/90 bg-indigo-600 text-white"
-                    >
-                      <ArrowLeftRight className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+                 
                   <TableCell className="text-center">
                     <Button
                       size="icon"
@@ -422,17 +414,39 @@ export default function InvestmentPage() {
             <DialogTitle>Raise Capital</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {updatedAmountRequired !== null && (
+            {/* Project Name */}
+            <div className="text-sm font-medium text-gray-700">
+              Date:{' '}
+              <span className="font-semibold">
+                <span>{moment().format('DD MMM YYYY')}</span>
+              </span>
+            </div>
+            <div className="text-sm font-medium text-gray-700">
+              Project:{' '}
+              <span className="font-semibold">{selectedProjectName}</span>
+            </div>
+
+            {/* Current Investment Amount */}
+            <div className="text-sm font-medium text-gray-700">
+              Current Investment Amount:{' '}
+              <span className="font-semibold">
+                £{selectedCurrentAmountRequired.toFixed(2)}
+              </span>
+            </div>
+
+            {/* Only show updated amount if raiseAmount is valid */}
+            {typeof raiseAmount === 'number' && raiseAmount > 0 && (
               <div className="text-sm font-medium text-gray-700">
-                Amount:{' '}
+                Updated Investment Amount:{' '}
                 <span className="font-semibold">
                   £{updatedAmountRequired.toFixed(2)}
                 </span>
               </div>
             )}
 
+            {/* Raise Amount Input */}
             <div className="space-y-2">
-              <Label htmlFor="amountRequired">Raise Amount(£)</Label>
+              <Label htmlFor="amountRequired">Raise Amount (£)</Label>
               <Input
                 id="amountRequired"
                 type="number"
@@ -444,7 +458,7 @@ export default function InvestmentPage() {
                     e.target.value ? parseFloat(e.target.value) : ''
                   )
                 }
-                placeholder="Enter required amount"
+                placeholder="Enter raise amount"
               />
             </div>
 
@@ -480,17 +494,32 @@ export default function InvestmentPage() {
           <DialogHeader>
             <DialogTitle>Complete your sell</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2 ">
-            <div className="space-y-2">
-              {grossProfit !== null && (
-                <div className=" pb-4 font-medium text-gray-700 ">
-                  Gross Profit:{' '}
-                  <span className="font-semibold">
-                    £{grossProfit.toFixed(2)}
-                  </span>
-                </div>
-              )}
+          <div className="space-y-4">
+            <div className="text-sm font-medium text-gray-700">
+              Date:{' '}
+              <span className="font-semibold">
+                <span>{moment().format('DD MMM YYYY')}</span>
+              </span>
+            </div>
+            <div className="text-sm font-medium text-gray-700">
+              Project:{' '}
+              <span className="font-semibold">{selectedProjectName}</span>
+            </div>
+            <div className="text-sm font-medium text-gray-700">
+              Investment Amount:{' '}
+              <span className="font-semibold">
+                £{selectedAmountRequired.toFixed(2)}
+              </span>
+            </div>
 
+            {grossProfit !== null && (
+              <div className="pb-4 font-medium text-gray-700">
+                Gross Profit:{' '}
+                <span className="font-semibold">£{grossProfit.toFixed(2)}</span>
+              </div>
+            )}
+
+            <div className="space-y-2">
               <Label htmlFor="salePrice">Sale Price (£)</Label>
               <Input
                 id="salePrice"

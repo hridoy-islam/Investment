@@ -25,16 +25,23 @@ export default function InvestorTransactionPage() {
   const navigate = useNavigate();
   const { user } = useSelector((state: any) => state.auth);
 
-  const fetchAllTransactions = async () => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get(
-        `/transactions?investorId=${user._id}`
-      );
-      const data = response.data.data.result;
+ const fetchAllTransactions = async () => {
+  try {
+    setLoading(true);
+    const response = await axiosInstance.get(
+      `/transactions?investorId=${user._id}`
+    );
+    const data = response.data.data.result;
 
-      const flattened = data.flatMap((transaction) =>
-        transaction.paymentLog.map((log) => ({
+    const flattened = data.flatMap((transaction) => {
+      const allLogs = [
+        ...(transaction.logs || []),
+        ...(transaction.paymentLog || [])
+      ];
+
+      return allLogs
+        .filter((log) => log.type !== 'commissionPaymentMade') // ✅ filter here
+        .map((log) => ({
           ...log,
           investmentTitle: transaction?.investmentId?.title || 'N/A',
           month: transaction.month,
@@ -42,17 +49,17 @@ export default function InvestorTransactionPage() {
           paidAmount: log.paidAmount,
           note: log.note,
           transactionType: log.transactionType
-        }))
-      );
+        }));
+    });
 
-      setAllTransactions(flattened);
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-      setAllTransactions([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setAllTransactions(flattened);
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    setAllTransactions([]);
+  } finally {
+    setLoading(false);
+  }
+};
   useEffect(() => {
     const filtered = allTransactions
       .filter((tx) => tx.month?.startsWith(selectedYear))
@@ -141,12 +148,15 @@ export default function InvestorTransactionPage() {
 
                     <p className="font-semibold">{log.investmentTitle}</p>
                     {log.transactionType === 'profitPayment' ? (
-                      <div className="italic text-gray-600">
-                        Payment Initiated{log.note ? ` (${log.note})` : ''}
-                      </div>
-                    ) : (
-                      <p className="italic text-gray-600">{log.note || ''}</p>
-                    )}
+  <div className="italic text-gray-600">
+    Payment Initiated{log.note ? ` (${log.note})` : ''}
+  </div>
+) : log.note ? (
+  <p className="italic text-gray-600">{log.note}</p>
+) : log.message ? (
+  <p className="italic text-gray-600">{log.message}</p>
+) : null}
+
                   </div>
                   <div className="text-right font-semibold text-gray-900">
                     £{log.paidAmount || 0}

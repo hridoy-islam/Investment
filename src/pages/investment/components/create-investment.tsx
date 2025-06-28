@@ -324,14 +324,14 @@ export default function App() {
 
                   <div className="space-y-2">
                     <Label htmlFor="details">Project Details *</Label>
-                    <div className="min-h-[300px]">
+                    <div className="min-h-[400px]">
                       <ReactQuill
                         value={details}
                         onChange={setDetails}
                         modules={quillModules}
                         theme="snow"
                         placeholder="Provide a detailed description of your investment project, including objectives, market analysis, and business model..."
-                        className="h-[250px]"
+                        className="h-[350px]"
                       />
                     </div>
                     <div className="flex justify-between py-4 text-sm text-slate-500">
@@ -346,57 +346,7 @@ export default function App() {
                 </CardContent>
               </Card>
 
-              {/* Financial Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-green-600" />
-                    Financial Information
-                  </CardTitle>
-                  <CardDescription>
-                    Set your funding requirements and financial details
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="amountRequired">Amount Required *</Label>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                        <Input
-                          id="amountRequired"
-                          type="number"
-                          {...register('amountRequired', {
-                            valueAsNumber: true
-                          })}
-                          placeholder="0"
-                          className={`pl-10 ${errors.amountRequired ? 'border-red-500' : ''}`}
-                        />
-                      </div>
-                      {errors.amountRequired && (
-                        <p className="text-sm text-red-500">
-                          {errors.amountRequired.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="adminCost">Admin Cost %</Label>
-                      <div className="relative">
-                        <Input
-                          id="adminCost"
-                          type="number"
-                          {...register('adminCost', { valueAsNumber: true })}
-                          placeholder="0"
-                          className="pr-10"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  
-                </CardContent>
-              </Card>
+              
 
               {/* Supporting Documents */}
               <Card>
@@ -538,6 +488,97 @@ export default function App() {
 
             {/* Sidebar */}
             <div className="space-y-6">
+
+              {/* Financial Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-green-600" />
+                    Financial Information
+                  </CardTitle>
+                  <CardDescription>
+                    Set your funding requirements and financial details
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="amountRequired">Amount Required *</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="amountRequired"
+                          type="number"
+                          {...register('amountRequired', {
+                            valueAsNumber: true
+                          })}
+                          placeholder="0"
+                          className={`pl-10 ${errors.amountRequired ? 'border-red-500' : ''}`}
+                        />
+                      </div>
+                      {errors.amountRequired && (
+                        <p className="text-sm text-red-500">
+                          {errors.amountRequired.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="adminCost">Admin Cost %</Label>
+                      <div className="relative">
+                        <Input
+                          id="adminCost"
+                          type="number"
+                          {...register('adminCost', { valueAsNumber: true })}
+                          placeholder="0"
+                          className="pr-10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  
+                </CardContent>
+              </Card>
+
+{/* Project Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Amount Required:</span>
+                      <span className="font-medium">
+                        {watchedValues.amountRequired
+                          ? formatCurrency(watchedValues.amountRequired)
+                          : '$0'}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Admin Cost:</span>
+                      <span className="font-medium">
+                        {watchedValues.adminCost
+                          ? `%${watchedValues.adminCost}`
+                          : '%0'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Documents:</span>
+                      <span className="font-medium">{documents.length}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Image:</span>
+                      <span className="font-medium">
+                        {featuredImage ? 'Uploaded' : 'None'}
+                      </span>
+                    </div>
+                  </div>
+                 
+                </CardContent>
+              </Card>
               {/* Featured Image */}
               <Card>
                 <CardHeader>
@@ -596,44 +637,7 @@ export default function App() {
                 </CardContent>
               </Card>
 
-              {/* Project Summary */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Project Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Amount Required:</span>
-                      <span className="font-medium">
-                        {watchedValues.amountRequired
-                          ? formatCurrency(watchedValues.amountRequired)
-                          : '$0'}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Admin Cost:</span>
-                      <span className="font-medium">
-                        {watchedValues.adminCost
-                          ? `%${watchedValues.adminCost}`
-                          : '%0'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Documents:</span>
-                      <span className="font-medium">{documents.length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Image:</span>
-                      <span className="font-medium">
-                        {featuredImage ? 'Uploaded' : 'None'}
-                      </span>
-                    </div>
-                  </div>
-                 
-                </CardContent>
-              </Card>
+              
             </div>
           </div>
 

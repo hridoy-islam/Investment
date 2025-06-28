@@ -9,7 +9,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoveLeft, Eye, PlusCircle, Pen } from 'lucide-react';
+import { MoveLeft, Eye, PlusCircle, Pen, Wallet } from 'lucide-react';
 import { DataTablePagination } from '@/components/shared/data-table-pagination';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import Select from 'react-select';
@@ -230,7 +230,7 @@ export default function ViewInvestorPage() {
                       : '—'}
                   </TableCell>
                   <TableCell>
-                    {participant?.agentCommissionRate || '-'}
+                    {participant?.agentCommissionRate || '-'}%
                   </TableCell>
                   <TableCell>
                     {participant?.amount && project?.amountRequired
@@ -257,15 +257,15 @@ export default function ViewInvestorPage() {
 
                     <Button
                       variant="ghost"
-                      className="bg-theme text-white hover:bg-theme/90"
                       size="icon"
                       onClick={() =>
                         navigate(
                           `/dashboard/investor/projects/account-history/${participant._id}`
                         )
                       }
+                       className="hover:bg-indigo/90 bg-lime-600 text-white"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Wallet className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>

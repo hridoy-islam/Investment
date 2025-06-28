@@ -15,7 +15,7 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import moment from 'moment';
 
-export default function InvestmentTransactionPage() {
+export default function AgentTransactionPage() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -57,8 +57,8 @@ export default function InvestmentTransactionPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axiosInstance.get(`/transactions`, {
-        params: { investmentId: id }
+      const res = await axiosInstance.get(`/agent-transactions`, {
+        params: { agentId: id }
       });
       const allTx = res.data?.data?.result || [];
       const filtered = allTx.filter((tx) => tx.month?.startsWith(currentYear));

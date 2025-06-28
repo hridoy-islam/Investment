@@ -33,6 +33,8 @@ import MonthLog from '@/pages/investor/account-history/components/month-log';
 import InvestmentTransactionPage from '@/pages/investment/view-transactions';
 import InvestorTransactionPage from '@/pages/investor/investor-transaction';
 import SaleLogTransactionPage from '@/pages/investment/view-saleLog';
+import AgentTransactionPage from '@/pages/agent-transactions';
+import AgentTransactionHistoryPage from '@/pages/agent/accountHistory';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -70,12 +72,20 @@ export default function AppRouter() {
           element: <AgentPage />
         },
         {
+          path: 'agent/transactions/:id',
+          element: <AgentTransactionPage />
+        },
+        {
           path: 'agent/referral',
           element: <AgentReferralPage />
         },
         {
           path: 'agents/referral/:id',
           element: <ReferralPage />
+        },
+        {
+          path: 'agents/referral/account-history/:id',
+          element: <AgentTransactionHistoryPage />
         },
         {
           path: 'investors',

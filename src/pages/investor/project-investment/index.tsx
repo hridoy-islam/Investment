@@ -346,14 +346,14 @@ export default function InvestmentProjectPage() {
               <TableRow>
                 <TableHead>Project Title</TableHead>
                 <TableHead>Investment Amount</TableHead>
+                <TableHead>Share</TableHead>
                 <TableHead className="text-center">
                   Agent Commission (%)
                 </TableHead>
 
                 <TableHead className='text-center'>Add Capital</TableHead>
-                <TableHead>Share</TableHead>
                 <TableHead className="text-center">Account History</TableHead>
-                <TableHead className="text-center">Action</TableHead>
+                <TableHead className="text-center">Project Details</TableHead>
                 <TableHead className="w-32 text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -378,10 +378,21 @@ export default function InvestmentProjectPage() {
                   >
                     £{project?.amount}
                   </TableCell>
+                    <TableCell
+                    onClick={() =>
+                      navigate(
+                        `/dashboard/investments/view/${project?.investmentId?._id}`
+                      )
+                    }
+                  >
+                    {project?.investmentId?.amountRequired
+                      ? `${((100 * project?.amount) / project?.investmentId?.amountRequired).toFixed(2)}%`
+                      : '—'}
+                  </TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-4">
                       <p className="font-medium">
-                        {project.agentCommissionRate ?? '—'}
+                        {project.agentCommissionRate ?? '—'}%
                       </p>
                       <Dialog
                         open={openDialogId === `commission-${project._id}`}
@@ -580,17 +591,7 @@ export default function InvestmentProjectPage() {
                     </Dialog>
                   </TableCell>
 
-                  <TableCell
-                    onClick={() =>
-                      navigate(
-                        `/dashboard/investments/view/${project?.investmentId?._id}`
-                      )
-                    }
-                  >
-                    {project?.investmentId?.amountRequired
-                      ? `${((100 * project?.amount) / project?.investmentId?.amountRequired).toFixed(2)}%`
-                      : '—'}
-                  </TableCell>
+                
                   <TableCell className="text-center">
                     <Button
                       size="icon"

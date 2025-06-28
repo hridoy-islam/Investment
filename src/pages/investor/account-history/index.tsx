@@ -109,7 +109,7 @@ export default function InvestorAccountHistoryPage() {
     if (id) {
       fetchData();
     }
-  }, [id, currentYear,count]);
+  }, [id, currentYear, count]);
 
   const handlePaymentConfirm = async () => {
     if (!paidAmount || !selectedTransaction) return;
@@ -236,7 +236,7 @@ export default function InvestorAccountHistoryPage() {
         ...prev,
         ...payload
       }));
-      increment()
+      increment();
 
       toast({
         title: 'Project successfully closed.',
@@ -258,11 +258,11 @@ export default function InvestorAccountHistoryPage() {
       <CardContent>
         <div className="flex flex-row items-center justify-between py-4">
           <h1 className="text-2xl font-bold">Account History</h1>
-             {data?.status === 'block' && (
-  <p className="mt-2 text-sm text-red-500">
-    Project is closed. No further actions allowed.
-  </p>
-)}
+          {data?.status === 'block' && (
+            <p className="mt-2 text-sm text-red-500">
+              Project is closed. No further actions allowed.
+            </p>
+          )}
           <div className="flex flex-row items-center justify-center gap-4">
             <Dialog
               open={isCloseDialogOpen}
@@ -313,7 +313,6 @@ export default function InvestorAccountHistoryPage() {
               Back
             </Button>
           </div>
-       
         </div>
 
         {loading ? (
@@ -522,24 +521,30 @@ export default function InvestorAccountHistoryPage() {
                       </CardHeader>
 
                       <CardContent>
-                        {paymentLogs && paymentLogs.length > 0 && (
+                        {(transaction?.logs?.length > 0 ||
+                          paymentLogs?.length > 0) && (
                           <div className="mt-4 space-y-2">
                             <h4 className="font-medium text-gray-700">
-                              Payment History:
+                              Transaction History:
                             </h4>
-                            {[...paymentLogs]
+                            {[
+                              ...(transaction?.logs || []),
+                              ...(paymentLogs || [])
+                            ]  .filter(log => log.type !== 'commissionPaymentMade')
                               .sort(
                                 (a, b) =>
-                                  new Date(b.createdAt).getTime() -
-                                  new Date(a.createdAt).getTime()
+                                  new Date(
+                                    b.createdAt || b.timestamp
+                                  ).getTime() -
+                                  new Date(a.createdAt || a.timestamp).getTime()
                               )
                               .map((log, logIndex) => (
                                 <div
                                   key={logIndex}
-                                  className="flex flex-col gap-2 rounded-md border border-gray-200 p-3 text-sm shadow-sm  sm:flex-row sm:items-center sm:justify-between sm:px-4"
+                                  className="flex flex-col gap-2 rounded-md border border-gray-200 p-3 text-sm shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-4"
                                 >
                                   <div className="flex flex-col sm:flex-row sm:items-center sm:gap-8">
-                                    <p className="text-gray-600">
+                                    <p className="text-black">
                                       {log.createdAt
                                         ? new Date(
                                             log.createdAt
@@ -550,50 +555,52 @@ export default function InvestorAccountHistoryPage() {
                                           })
                                         : 'N/A'}
                                     </p>
-                                    {log.transactionType ===
-                                      'profitPayment' && (
-                                      <div className="flex flex-row items-center gap-2">
-                                        Payment Initiated{' '}
-                                        {log.note && (
-                                          <p className="text-gray-800">
-                                            ({log.note})
-                                          </p>
-                                        )}
-                                      </div>
-                                    )}
-                                    {log.transactionType ===
-                                      'closeProject' && (
-                                      <div className="flex flex-row items-center gap-2">
-                                        
-                                        {log.note && (
-                                          <p className="text-gray-800">
-                                            {log.note}
-                                          </p>
-                                        )}
-                                      </div>
-                                    )}
-                                    {log.transactionType === 'investment' && (
-                                      <div className="flex flex-row items-center gap-2">
-                                        Initial investment successfully created{' '}
-                                      </div>
-                                    )}
+                                    <span className="ml-2  text-black">{log._id}</span>
+
+                                    <div className="flex flex-row gap-1">
+                                      {log.message && (
+                                        <p className="text-black">
+                                          {log.message}
+                                        </p>
+                                      )}
+
+                                      {log.transactionType ===
+                                        'profitPayment' && (
+                                        <p className="text-sm  text-green-600">
+                                          Payment Initiated
+                                        </p>
+                                      )}
+
+                                      {log.note && (
+                                        <p className="text-sm  text-black">
+                                          ({log.note})
+                                        </p>
+                                      )}
+                                    </div>
                                   </div>
-                                  {log.transactionType === 'profitPayment' || log.transactionType === 'closeProject' && (
-                                    <div className="flex flex-row items-start sm:items-end gap-2">
+
+                                  {log.paidAmount && (
+                                    <div className="flex flex-row items-start gap-2 sm:items-end">
                                       
-                                        <span className="font-medium text-gray-600">
-                                          Amount:
-                                        </span>{' '}
-                                        <span className="font-semibold text-black">
-                                          {log.transactionType ===
-                                            'profitPayment' || log.transactionType ===
-                                            'closeProject' && (
-                                            <div className="flex flex-row items-center gap-2"></div>
-                                          )}
-                                          £
-                                          {log.paidAmount?.toFixed(2) || '0.00'}
-                                        </span>
-                                    
+                                      <span className="font-semibold text-black">
+                                        £
+                                        {(
+                                          log.paidAmount ||
+                                          0
+                                        ).toFixed(2)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {log?.metadata?.amount && (
+                                    <div className="flex flex-row items-start gap-2 sm:items-end">
+                                      
+                                      <span className="font-semibold text-black">
+                                        £
+                                        {(
+                                          log?.metadata?.amount ||
+                                          0
+                                        ).toFixed(2)}
+                                      </span>
                                     </div>
                                   )}
                                 </div>
