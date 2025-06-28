@@ -4,7 +4,7 @@ import axiosInstance from '@/lib/axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { Button } from '@/components/ui/button';
-import { MoveLeft, PoundSterlingIcon } from 'lucide-react';
+import { MoveLeft, PoundSterlingIcon, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -27,20 +27,26 @@ import moment from 'moment';
 
 export default function InvestorAccountHistoryPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useSelector((state: any) => state.auth);
+  const { toast } = useToast();
+
   const [data, setData] = useState<any>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [paidAmount, setPaidAmount] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [note, setNote] = useState('');
-  const navigate = useNavigate();
-  const { user } = useSelector((state: any) => state.auth);
-  const { toast } = useToast();
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
   const [count, setCount] = useState(0);
-  const increment = () => setCount((prev) => prev + 1);
+
+  // Loading flags for payments & logs
+  const [loadingTxId, setLoadingTxId] = useState<string | null>(null);
+  const [loadingLogTxId, setLoadingLogTxId] = useState<string | null>(null);
+
+  const increment = () => setCount(prev => prev + 1);
 
   const generateYears = () => {
     const years = [];
@@ -51,15 +57,12 @@ export default function InvestorAccountHistoryPage() {
     return years;
   };
 
-  function sortByLatestCreatedAt(data) {
-    return data.sort((a, b) => {
-      const timeA = moment(a.createdAt);
-      const timeB = moment(b.createdAt);
-      return timeB.diff(timeA);
-    });
-  }
-  const sortedItems = sortByLatestCreatedAt(transactions);
+  const sortByLatestCreatedAt = (data: any[]) => 
+    data.sort((a, b) =>
+      moment(b.createdAt).diff(moment(a.createdAt))
+    );
 
+  // Fetch both participant and transactions
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -67,10 +70,7 @@ export default function InvestorAccountHistoryPage() {
       const participantData = res.data?.data || {};
       setData(participantData);
 
-      if (
-        participantData.investorId?._id &&
-        participantData.investmentId?._id
-      ) {
+      if (participantData.investorId?._id && participantData.investmentId?._id) {
         const [txRes, invRes] = await Promise.all([
           axiosInstance.get(`/transactions?limit=12`, {
             params: {
@@ -83,23 +83,25 @@ export default function InvestorAccountHistoryPage() {
 
         const investmentDetails = invRes.data?.data || {};
         const amountRequired = investmentDetails.amountRequired || 0;
+        const computedRate = amountRequired > 0
+          ? (100 * participantData.amount) / amountRequired
+          : 0;
 
-        // Compute the Rate if amountRequired is valid
-        const computedRate =
-          amountRequired > 0
-            ? (100 * participantData.amount) / amountRequired
-            : 0;
-
-        // Add computedRate to participantData
-        setData({
+        setData(prev => ({
           ...participantData,
-          computedRate: computedRate.toFixed(2) // Optional: round to 2 decimals
-        });
+          computedRate: computedRate.toFixed(2),
+          totalPaid: prev.totalPaid || 0,
+          totalDue: prev.totalDue || 0
+        }));
 
         setTransactions(txRes.data?.data?.result || []);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      toast({
+        title: 'Failed to load account data',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }
@@ -111,141 +113,108 @@ export default function InvestorAccountHistoryPage() {
     }
   }, [id, currentYear, count]);
 
+  // Fetch specific transaction to update logs after payment
+  const fetchSingleTransaction = async (txId: string) => {
+    try {
+      const response = await axiosInstance.get(`/transactions/${txId}`);
+      const updatedTx = response.data?.data;
+      if (updatedTx) {
+        setTransactions(prev =>
+          prev.map(tx =>
+            tx._id === txId ? updatedTx : tx
+          )
+        );
+      }
+    } catch (e) {
+      console.error('Error fetching single transaction:', e);
+    }
+  };
+
   const handlePaymentConfirm = async () => {
     if (!paidAmount || !selectedTransaction) return;
+    const paidAmtNum = parseFloat(paidAmount);
+    if (paidAmtNum <= 0) return;
+
+    const txId = selectedTransaction._id;
+    setLoadingTxId(txId);
+
+    // Optimistic UI update
+    setTransactions(prev =>
+      prev.map(tx => {
+        if (tx._id === txId) {
+          const newPaid = (tx.monthlyTotalPaid || 0) + paidAmtNum;
+          const due = tx.monthlyTotalDue || 0;
+          const newStatus = newPaid >= due ? 'paid' : 'partial';
+
+          const tempLog = {
+            _id: 'temp-loading',
+            transactionType: 'profitPayment',
+            paidAmount: paidAmtNum,
+            note,
+            createdAt: new Date().toISOString(),
+            isLoading: true,
+          };
+
+          return {
+            ...tx,
+            monthlyTotalPaid: newPaid,
+            status: newStatus,
+            paymentLog: [...(tx.paymentLog || []), tempLog],
+          };
+        }
+        return tx;
+      })
+    );
+
+    setData(prev => ({
+      ...prev,
+      totalPaid: (prev.totalPaid || 0) + paidAmtNum,
+      totalDue: Math.max((prev.totalDue || 0) - paidAmtNum, 0)
+    }));
+
+    setIsDialogOpen(false);
+    setPaidAmount('');
+    setNote('');
+
     try {
-      const payload = {
-        paidAmount: parseFloat(paidAmount),
-        note: note
-      };
-      await axiosInstance.patch(
-        `/transactions/${selectedTransaction._id}`,
-        payload
-      );
+      await axiosInstance.patch(`/transactions/${txId}`, {
+        paidAmount: paidAmtNum,
+        note
+      });
 
-      //  Optimistically update the transactions array
-      setTransactions((prevTransactions) =>
-        prevTransactions.map((tx) =>
-          tx._id === selectedTransaction._id
-            ? {
-                ...tx,
-                monthlyTotalPaid:
-                  (tx.monthlyTotalPaid || 0) + payload.paidAmount,
-                status:
-                  payload.paidAmount >= tx.monthlyTotalDue ? 'paid' : 'partial',
-                paymentLog: [
-                  ...(tx.paymentLog || []),
-                  {
-                    paidAmount: payload.paidAmount,
-                    note: payload.note,
-                    createdAt: new Date().toISOString(),
-                    transactionType: 'profitPayment'
-                  }
-                ]
-              }
-            : tx
-        )
-      );
+      toast({ title: 'Payment completed successfully' });
 
-      //  Optionally update totalPaid in data
-      setData((prevData: any) => ({
-        ...prevData,
-        totalPaid: (prevData.totalPaid || 0) + payload.paidAmount,
-        totalDue: Math.max((prevData.totalDue || 0) - payload.paidAmount, 0)
-      }));
-
-      setIsDialogOpen(false);
-      setPaidAmount('');
-      setNote('');
-      toast({ title: 'Payment Completed successfully' });
-    } catch (error) {
-      console.error('Error updating payment:', error);
+      setLoadingLogTxId(txId);
+      await fetchSingleTransaction(txId);
+    } catch (error: any) {
+      console.error('Payment error:', error);
       toast({
         title: error.response?.data?.message || 'Payment failed',
         variant: 'destructive'
       });
+      fetchData(); // rollback
+    } finally {
+      setLoadingTxId(null);
+      setLoadingLogTxId(null);
     }
   };
-
-  const allMonths = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December'
-  ];
-
-  const getOrderedMonths = () => {
-    const now = new Date();
-    const currentMonthIndex = now.getMonth(); // 0-based
-    return [
-      ...allMonths.slice(currentMonthIndex),
-      ...allMonths.slice(0, currentMonthIndex)
-    ];
-  };
-
-  const getFilteredOrderedMonths = (transactionMap: Record<string, any>) => {
-    const now = new Date();
-    const currentMonthIndex = now.getMonth(); // 0-based
-    const orderedMonths = [
-      ...allMonths.slice(currentMonthIndex),
-      ...allMonths.slice(0, currentMonthIndex)
-    ];
-
-    return orderedMonths.filter((monthName) => {
-      const monthIndex = allMonths.indexOf(monthName); // 0-based
-      const monthNumber = monthIndex + 1; // convert to 1-based for formatting
-      const monthKey = `${currentYear}-${String(monthNumber).padStart(2, '0')}`;
-      return transactionMap[monthKey]; // only keep if there's a transaction
-    });
-  };
-
-  const createTransactionMap = () => {
-    const transactionMap: Record<string, any> = {};
-    transactions.forEach((tx) => {
-      if (tx.month) {
-        transactionMap[tx.month] = tx;
-      }
-    });
-    return transactionMap;
-  };
-
-  const transactionMap = createTransactionMap();
 
   const handleCloseProjectConfirm = async () => {
     if (!data) return;
 
     try {
-      const payload = {
+      await axiosInstance.patch(`/investment-participants/${id}`, {
         totalDue: 0,
         totalPaid: data.totalDue,
         status: 'block',
         amount: 0
-      };
-
-      await axiosInstance.patch(`/investment-participants/${id}`, payload);
-
-      setData((prev: any) => ({
-        ...prev,
-        ...payload
-      }));
-      increment();
-
-      toast({
-        title: 'Project successfully closed.',
-        variant: 'default'
       });
-
+      setData(prev => ({ ...prev, totalDue: 0, totalPaid: prev.totalDue, status: 'block', amount: 0 }));
+      increment();
+      toast({ title: 'Project successfully closed.' });
       setIsCloseDialogOpen(false);
     } catch (error: any) {
-      console.error('Failed to close project:', error);
+      console.error('Close project failed:', error);
       toast({
         title: error.response?.data?.message || 'Failed to close project',
         variant: 'destructive'
@@ -253,9 +222,28 @@ export default function InvestorAccountHistoryPage() {
     }
   };
 
+  const allMonths = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December'
+  ];
+  const nowIndex = new Date().getMonth();
+
+  const createTransactionMap = () => {
+    const map: Record<string, any> = {};
+    transactions.forEach(tx => {
+      if (tx.month) {
+        map[tx.month] = tx;
+      }
+    });
+    return map;
+  };
+  const transactionMap = createTransactionMap();
+  const orderedMonths = [...allMonths.slice(nowIndex), ...allMonths.slice(0, nowIndex)];
+
   return (
     <Card className="rounded-sm">
       <CardContent>
+        {/* Header */}
         <div className="flex flex-row items-center justify-between py-4">
           <h1 className="text-2xl font-bold">Account History</h1>
           {data?.status === 'block' && (
@@ -263,355 +251,190 @@ export default function InvestorAccountHistoryPage() {
               Project is closed. No further actions allowed.
             </p>
           )}
-          <div className="flex flex-row items-center justify-center gap-4">
-            <Dialog
-              open={isCloseDialogOpen}
-              onOpenChange={setIsCloseDialogOpen}
-            >
+          <div className="flex flex-row items-center gap-4">
+            <Dialog open={isCloseDialogOpen} onOpenChange={setIsCloseDialogOpen}>
               <DialogTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  disabled={data?.status === 'block'}
-                >
+                <Button size="sm" variant="destructive" disabled={data?.status === 'block'}>
                   Close Project
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>
-                    Are you sure you want to close this project?
-                  </DialogTitle>
+                  <DialogTitle>Are you sure you want to close this project?</DialogTitle>
                 </DialogHeader>
                 <p className="text-sm text-gray-600">
-                  This will mark all remaining due as paid and block this
-                  investment participant from further updates.
+                  This will mark all remaining due as paid and block this investment participant from further updates.
                 </p>
                 <div className="mt-4 flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsCloseDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    className="bg-theme text-white hover:bg-theme/90"
-                    onClick={handleCloseProjectConfirm}
-                  >
-                    Confirm
-                  </Button>
+                  <Button variant="outline" onClick={() => setIsCloseDialogOpen(false)}>Cancel</Button>
+                  <Button className="bg-theme text-white hover:bg-theme/90" onClick={handleCloseProjectConfirm}>Confirm</Button>
                 </div>
               </DialogContent>
             </Dialog>
-
-            <Button
-              className="border-none bg-theme text-white hover:bg-theme/90"
-              size="sm"
-              onClick={() => navigate(-1)}
-            >
-              <MoveLeft className="mr-2 h-4 w-4" />
-              Back
+            <Button size="sm" className="bg-theme text-white hover:bg-theme/90" onClick={() => navigate(-1)}>
+              <MoveLeft className="mr-2 h-4 w-4" />Back
             </Button>
           </div>
         </div>
 
+        {/* Loading or Content */}
         {loading ? (
           <BlinkingDots size="large" color="bg-theme" />
         ) : !data ? (
           <p>No data found.</p>
         ) : (
           <>
+            {/* Summary Cards */}
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                {
-                  label: 'Project Title',
-                  value: data.investmentId?.title || 'N/A'
-                },
-                {
-                  label: 'Investor Name',
-                  value: data.investorId?.name || 'N/A'
-                },
+                { label: 'Project Title', value: data.investmentId?.title || 'N/A' },
+                { label: 'Investor Name', value: data.investorId?.name || 'N/A' },
                 { label: 'Amount', value: `£${data.amount || 0}` },
                 { label: 'Share', value: `${data.computedRate || 0}%` },
-
-                {
-                  label: 'Total Due',
-                  value:
-                    data.totalDue != null
-                      ? `£${data.totalDue.toFixed(2)}`
-                      : '£0.00'
-                },
-                {
-                  label: 'Total Paid',
-                  value:
-                    data.totalPaid != null
-                      ? `£${data.totalPaid.toFixed(2)}`
-                      : '£0.00'
-                }
-              ].map((item, index) => (
-                <div
-                  key={index}
-                  className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
-                >
-                  <p className="text-sm font-medium text-slate-500">
-                    {item.label}
-                  </p>
-                  <p className="mt-1 truncate text-lg font-semibold text-gray-800">
-                    {item.value}
-                  </p>
+                { label: 'Total Due', value: `£${(data.totalDue ?? 0).toFixed(2)}` },
+                { label: 'Total Paid', value: `£${(data.totalPaid ?? 0).toFixed(2)}` },
+              ].map((item, i) => (
+                <div key={i} className="rounded-lg border bg-white p-3 shadow-sm">
+                  <p className="text-sm font-medium text-slate-500">{item.label}</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-800 truncate">{item.value}</p>
                 </div>
               ))}
             </div>
 
+            {/* Year Filter */}
             <div className="mb-6 flex items-center justify-start">
               <label htmlFor="year-select" className="mr-2 text-sm font-medium">
                 Select Year:
               </label>
-              <Select
-                onValueChange={(value) => setCurrentYear(parseInt(value))}
-                defaultValue={`${currentYear}`}
-              >
-                <SelectTrigger id="year-select" className="w-[120px]">
-                  <SelectValue placeholder={currentYear} />
-                </SelectTrigger>
+              <Select onValueChange={v => setCurrentYear(parseInt(v))} defaultValue={`${currentYear}`}>
+                <SelectTrigger id="year-select" className="w-[120px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {generateYears().map((year) => (
-                    <SelectItem key={year} value={`${year}`}>
-                      {year}
-                    </SelectItem>
-                  ))}
+                  {generateYears().map(y => <SelectItem key={y} value={`${y}`}>{y}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
+            {/* Monthly Cards */}
             <div className="grid grid-cols-1 gap-4">
-              {getFilteredOrderedMonths(transactionMap).map(
-                (monthName, idx) => {
-                  const monthIndex = allMonths.indexOf(monthName); // Get original index
-                  const monthNumber = monthIndex + 1;
-                  const monthKey = `${currentYear}-${String(monthNumber).padStart(2, '0')}`;
-                  const transaction = transactionMap[monthKey];
-
-                  const profit = transaction?.profit || 0;
-                  const dueAmount = transaction?.monthlyTotalDue || 0;
-                  const paidAmount = transaction?.monthlyTotalPaid || 0;
-                  const status = transaction?.status || 'N/A';
-                  const paymentLogs = transaction?.paymentLog || [];
+              {orderedMonths.filter(m => transactionMap[`${currentYear}-${String(allMonths.indexOf(m)+1).padStart(2,'0')}`])
+                .map((monthName, idx) => {
+                  const monthIdx = allMonths.indexOf(monthName) + 1;
+                  const monthKey = `${currentYear}-${String(monthIdx).padStart(2,'0')}`;
+                  const tx = transactionMap[monthKey];
+                  const profit = tx.profit || 0;
+                  const dueAmt = tx.monthlyTotalDue || 0;
+                  const paidAmt = tx.monthlyTotalPaid || 0;
+                  const status = tx.status || 'due';
+                  const logs = [...(tx.logs || []), ...(tx.paymentLog || [])]
+                    .filter(l => l.type !== 'commissionPaymentMade')
+                    .sort((a, b) => new Date(b.createdAt || b.timestamp).getTime() - new Date(a.createdAt || a.timestamp).getTime());
 
                   return (
-                    <Card
-                      key={idx}
-                      className={`border border-gray-200 transition-shadow hover:shadow-lg ${
-                        status === 'paid' ? 'bg-green-50' : ''
-                      }`}
-                    >
+                    <Card key={idx} className={`border border-gray-300 transition-shadow hover:shadow-lg ${status==='paid' ? 'bg-green-50' : ''}`}>
                       <CardHeader>
                         <CardTitle className="flex flex-wrap items-center justify-between gap-4 text-lg">
                           <div>{`${monthName} ${currentYear}`}</div>
-                          <p className="font-semibold text-blue-500">
-                            <span className="font-medium text-black">
-                              Profit:
-                            </span>{' '}
-                            £{profit.toFixed(2)}
-                          </p>
-                          <p className="font-semibold text-rose-500">
-                            <span className="font-medium text-black">Due:</span>{' '}
-                            £{dueAmount.toFixed(2)}
-                          </p>
-                          <p className="font-semibold text-green-500">
-                            <span className="font-medium text-black">
-                              Paid:
-                            </span>{' '}
-                            £{paidAmount.toFixed(2)}
-                          </p>
+                          <p className="text-blue-500 font-semibold"><span className="font-medium text-black">Profit:</span> £{profit.toFixed(2)}</p>
+                          <p className="text-rose-500 font-semibold"><span className="font-medium text-black">Due:</span> £{dueAmt.toFixed(2)}</p>
+                          <p className="text-green-500 font-semibold"><span className="font-medium text-black">Paid:</span> £{paidAmt.toFixed(2)}</p>
 
                           {status === 'paid' ? (
-                            <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-black">
-                              Paid
-                            </span>
+                            <span className="bg-green-100 rounded-full px-2 py-1 text-xs font-semibold text-black">Paid</span>
                           ) : status === 'partial' ? (
-                            <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-black">
-                              Partial
-                            </span>
+                            <span className="bg-yellow-100 rounded-full px-2 py-1 text-xs font-semibold text-black">Partial</span>
                           ) : (
-                            status === 'due' && (
-                              <span className="rounded-full bg-red-100 px-4 py-2 text-xs font-semibold text-black">
-                                Due
-                              </span>
-                            )
+                            <span className="bg-red-100 rounded-full px-2 py-1 text-xs font-semibold text-black">Due</span>
                           )}
 
-                          {user.role === 'admin' &&
-                            transaction &&
-                            profit > 0 && (
-                              <Dialog
-                                open={isDialogOpen}
-                                onOpenChange={setIsDialogOpen}
-                              >
-                                <DialogTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="border-none bg-theme text-white hover:bg-theme/90"
-                                    onClick={() => {
-                                      setPaidAmount('');
-                                      setNote('');
-                                      setSelectedTransaction(transaction);
-                                    }}
-                                    disabled={
-                                      status === 'paid' ||
-                                      data?.status === 'block'
-                                    }
-                                  >
-                                    Make Payment{' '}
-                                    <PoundSterlingIcon className="ml-2 h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>
-                                      Add Payment for {monthName}
-                                    </DialogTitle>
-                                  </DialogHeader>
-                                  <div className="mt-4 flex flex-col gap-4">
-                                    <div>
-                                      <label className="mb-1 block text-sm font-medium">
-                                        Paid Amount (£)
-                                      </label>
-                                      <Input
-                                        type="text"
-                                        onChange={(e) =>
-                                          setPaidAmount(e.target.value)
-                                        }
-                                        min="0"
-                                        step="0.01"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="mb-1 block text-sm font-medium">
-                                        Note
-                                      </label>
-                                      <Textarea
-                                        value={note}
-                                        onChange={(e) =>
-                                          setNote(e.target.value)
-                                        }
-                                        className="border border-gray-300"
-                                      />
-                                    </div>
-                                    <div className="mt-4 flex justify-end space-x-2">
-                                      <Button
-                                        variant="outline"
-                                        onClick={() => setIsDialogOpen(false)}
-                                      >
-                                        Cancel
-                                      </Button>
-                                      <Button
-                                        className="bg-theme text-white hover:bg-theme/90"
-                                        onClick={handlePaymentConfirm}
-                                      >
-                                        Confirm
-                                      </Button>
-                                    </div>
+                          {user.role === 'admin' && status !== 'paid' && profit > 0 && (
+                            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="border-none bg-theme text-white hover:bg-theme/90"
+                                  onClick={() => {
+                                    setSelectedTransaction(tx);
+                                    setPaidAmount('');
+                                    setNote('');
+                                  }}
+                                  disabled={data?.status === 'block'}
+                                >
+                                  Make Payment <PoundSterlingIcon className="ml-2 h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Add Payment for {monthName}</DialogTitle>
+                                </DialogHeader>
+                                <div className="mt-4 flex flex-col gap-4">
+                                  <div>
+                                    <label className="mb-1 block text-sm font-medium">Paid Amount (£)</label>
+                                    <Input type="number" step="0.01" min="0" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} />
                                   </div>
-                                </DialogContent>
-                              </Dialog>
-                            )}
+                                  <div>
+                                    <label className="mb-1 block text-sm font-medium">Note</label>
+                                    <Textarea value={note} onChange={e => setNote(e.target.value)} />
+                                  </div>
+                                  <div className="mt-4 flex justify-end gap-2">
+                                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                                    <Button
+                                      className="bg-theme text-white hover:bg-theme/90"
+                                      onClick={handlePaymentConfirm}
+                                      disabled={loadingTxId === tx._id}
+                                    >
+                                      {loadingTxId === tx._id && (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      )}
+                                      Confirm
+                                    </Button>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          )}
                         </CardTitle>
                       </CardHeader>
 
                       <CardContent>
-                        {(transaction?.logs?.length > 0 ||
-                          paymentLogs?.length > 0) && (
+                        {logs.length > 0 && (
                           <div className="mt-4 space-y-2">
-                            <h4 className="font-medium text-gray-700">
-                              Transaction History:
-                            </h4>
-                            {[
-                              ...(transaction?.logs || []),
-                              ...(paymentLogs || [])
-                            ]  .filter(log => log.type !== 'commissionPaymentMade')
-                              .sort(
-                                (a, b) =>
-                                  new Date(
-                                    b.createdAt || b.timestamp
-                                  ).getTime() -
-                                  new Date(a.createdAt || a.timestamp).getTime()
-                              )
-                              .map((log, logIndex) => (
-                                <div
-                                  key={logIndex}
-                                  className="flex flex-col gap-2 rounded-md border border-gray-200 p-3 text-sm shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-4"
-                                >
-                                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-8">
-                                    <p className="text-black">
-                                      {log.createdAt
-                                        ? new Date(
-                                            log.createdAt
-                                          ).toLocaleDateString('en-GB', {
-                                            day: '2-digit',
-                                            month: 'short',
-                                            year: 'numeric'
-                                          })
-                                        : 'N/A'}
-                                    </p>
-                                    <span className="ml-2  text-black">{log._id}</span>
+                            <h4 className="text-gray-700 font-medium">Transaction History:</h4>
+                            {logs.map((log, i) => (
+                              <div key={i} className="flex flex-col sm:flex-row sm:justify-between gap-2 border border-gray-300  p-3 rounded-md text-sm">
+                                <div className="flex flex-row items-center gap-4">
+                                  <p className="font-medium text-black">
+                                    {log.createdAt ? new Date(log.createdAt).toLocaleDateString('en-GB') : 'N/A'}
+                                  </p>
 
-                                    <div className="flex flex-row gap-1">
-                                      {log.message && (
-                                        <p className="text-black">
-                                          {log.message}
-                                        </p>
-                                      )}
-
-                                      {log.transactionType ===
-                                        'profitPayment' && (
-                                        <p className="text-sm  text-green-600">
-                                          Payment Initiated
-                                        </p>
-                                      )}
-
-                                      {log.note && (
-                                        <p className="text-sm  text-black">
-                                          ({log.note})
-                                        </p>
-                                      )}
+                                  {(log.isLoading || (loadingLogTxId === tx._id && log._id === 'temp-loading')) ? (
+                                    <div className="flex items-center gap-2">
+                                      <Loader2 className="animate-spin h-3 w-3" />
+                                      <span className="text-gray-500 text-xs">Generating ID...</span>
                                     </div>
-                                  </div>
-
-                                  {log.paidAmount && (
-                                    <div className="flex flex-row items-start gap-2 sm:items-end">
-                                      
-                                      <span className="font-semibold text-black">
-                                        £
-                                        {(
-                                          log.paidAmount ||
-                                          0
-                                        ).toFixed(2)}
-                                      </span>
-                                    </div>
+                                  ) : (
+                                    <p className="text-black">{log._id}</p>
                                   )}
-                                  {log?.metadata?.amount && (
-                                    <div className="flex flex-row items-start gap-2 sm:items-end">
-                                      
-                                      <span className="font-semibold text-black">
-                                        £
-                                        {(
-                                          log?.metadata?.amount ||
-                                          0
-                                        ).toFixed(2)}
-                                      </span>
-                                    </div>
+
+                                  {log.transactionType === 'profitPayment' && (
+                                    <p className="text-green-600 text-sm">Payment Initiated</p>
                                   )}
+                                  <p className="text-black">{log.note || log.message || ''}</p>
                                 </div>
-                              ))}
+
+                                {(log.paidAmount || log.metadata?.amount) && (
+                                  <span className="font-semibold text-black">
+                                    £{(log.paidAmount || log.metadata?.amount || 0).toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         )}
                       </CardContent>
                     </Card>
                   );
-                }
-              )}
+                })}
             </div>
           </>
         )}
