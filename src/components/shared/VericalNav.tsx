@@ -80,6 +80,7 @@ const VerticalNav = () => {
                 path: '/dashboard/agent/referral',
                 icon: BriefcaseBusiness
               },
+               { name: 'Transactions', path: '/dashboard/agent/transactions', icon: Calculator },
               { name: 'Banks', path: '/dashboard/banks', icon: PoundSterling },
                { name: 'AML Update', path: '/dashboard/profile/aml', icon: BookUser  }
             ]

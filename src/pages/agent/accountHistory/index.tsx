@@ -183,7 +183,7 @@ export default function AgentTransactionHistoryPage() {
         title: error.response?.data?.message || 'Failed to complete payment',
         variant: 'destructive',
       });
-      fetchData(); // rollback on failure
+      
     } finally {
       setLoadingTxId(null);
       setLoadingLogTxId(null);
@@ -436,7 +436,8 @@ export default function AgentTransactionHistoryPage() {
                               >
                                 <div className="flex flex-row items-center gap-4">
                                   <p className="font-medium text-black">
-                                    {new Date(log.createdAt).toLocaleDateString('en-GB')}
+                                   {moment(log.createdAt).format('D MMM YYYY')}
+
                                   </p>
                                   
                                   {/* Show loading state or actual ID */}

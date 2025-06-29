@@ -91,7 +91,7 @@ export default function InvestorInvestmentPage() {
               <TableRow>
                 <TableHead>Project Name</TableHead>
                 <TableHead>Investment Amount</TableHead>
-                <TableHead>Profit Rate</TableHead>
+                <TableHead>Share</TableHead>
                 <TableHead className="text-center">Account History</TableHead>
                 <TableHead className="text-end">Actions</TableHead>
               </TableRow>

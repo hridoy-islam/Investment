@@ -130,9 +130,10 @@ export default function InvestmentProjectPage() {
       setAllInvestments(available);
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to load investment projects.',
-        variant: 'destructive'
+        title:
+          error?.response?.data?.message ||
+          'Failed to load investment projects.',
+        className: 'bg-destructive text-white border-none'
       });
     }
   };
@@ -190,8 +191,7 @@ export default function InvestmentProjectPage() {
       setIsDialogOpen(false);
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description:
+        title:
           error.response?.data?.message || 'Failed to add investment project.',
         variant: 'destructive'
       });
@@ -351,7 +351,7 @@ export default function InvestmentProjectPage() {
                   Agent Commission (%)
                 </TableHead>
 
-                <TableHead className='text-center'>Add Capital</TableHead>
+                <TableHead className="text-center">Add Capital</TableHead>
                 <TableHead className="text-center">Account History</TableHead>
                 <TableHead className="text-center">Project Details</TableHead>
                 <TableHead className="w-32 text-center">Status</TableHead>
@@ -378,7 +378,7 @@ export default function InvestmentProjectPage() {
                   >
                     £{project?.amount}
                   </TableCell>
-                    <TableCell
+                  <TableCell
                     onClick={() =>
                       navigate(
                         `/dashboard/investments/view/${project?.investmentId?._id}`
@@ -470,7 +470,9 @@ export default function InvestmentProjectPage() {
                                 name="newCommission"
                                 type="number"
                                 step="any"
-                                 defaultValue={project?.agentCommissionRate ?? ''}
+                                defaultValue={
+                                  project?.agentCommissionRate ?? ''
+                                }
                                 placeholder="Enter commission rate"
                               />
                             </div>
@@ -493,7 +495,7 @@ export default function InvestmentProjectPage() {
                     </div>
                   </TableCell>
 
-                  <TableCell className='text-center'>
+                  <TableCell className="text-center">
                     <Dialog
                       open={project._id === openDialogId}
                       onOpenChange={(isOpen) =>
@@ -553,10 +555,12 @@ export default function InvestmentProjectPage() {
                               fetchData(currentPage, entriesPerPage); // Refresh data
                             } catch (error) {
                               toast({
-                                title: 'Error',
-                                description: 'Failed to add more capital',
+                                title:
+                                  error.response?.data?.message ||
+                                  'Failed to add more capital',
                                 variant: 'destructive'
                               });
+                               setOpenDialogId(null);
                             }
                           }}
                           className="space-y-4 pt-4"
@@ -591,7 +595,6 @@ export default function InvestmentProjectPage() {
                     </Dialog>
                   </TableCell>
 
-                
                   <TableCell className="text-center">
                     <Button
                       size="icon"

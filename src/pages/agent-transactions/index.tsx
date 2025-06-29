@@ -234,54 +234,38 @@ export default function AgentTransactionPage() {
                               className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white px-4 py-1 shadow-sm sm:flex-row sm:items-center sm:justify-between"
                             >
                               <div className="flex flex-row gap-4 text-sm text-black">
-                                {log.transactionType === 'profitPayment' ? (
+                                { log.transactionType === "commissionPayment" ? (
                                   <div className="flex flex-row gap-4">
-                                    <div className="font-medium">
-                                      {moment(log?.createdAt).format(
-                                        'D MMM YYYY'
-                                      )}
-                                      <span className="ml-4  text-black">
-                                        {log._id}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      Payment Initiated To{' '}
-                                      <span className="font-semibold">
-                                        {log.investorName}
-                                      </span>
-                                    </div>
-                                    {log?.note && (
-                                      <span className="text-black">
-                                        ({log.note})
-                                      </span>
-                                    )}
-                                  </div>
-                                ) : log.transactionType ? (
-                                  <p className="font-medium">
+                                    <p className="font-medium">
+
                                     {moment(log?.createdAt).format(
                                       'D MMM YYYY'
                                     )}
-                                    <span className="ml-4  text-black">
+                                    </p>
+                                    <span className="  text-black">
                                       {log._id}
                                     </span>
-                                    {' - '}
+                                    {'  '}
                                     <span className="font-semibold text-green-600">
                                       <span className="font-semibold text-black">
-                                        {log.investorName} -
+                                        {/* {log.investorName} */}
                                       </span>{' '}
-                                      Initial investment successfully created
+                                            Payment Initiated 
                                     </span>
-                                  </p>
+                                  </div>
                                 ) : (
                                   <>
-                                    <p className="font-medium">
+                                    <div className="flex flex-row items-center gap-4">
+                                      <p className='font-medium'>
+
                                       {moment(log?.createdAt).format(
                                         'D MMM YYYY'
                                       )}
-                                      <span className="ml-4  text-black">
+                                      </p>
+                                      <span className=" text-black">
                                         {log._id}
                                       </span>
-                                    </p>
+                                    </div>
                                     <p className="text-black">
                                       {log?.message || ''}
                                     </p>

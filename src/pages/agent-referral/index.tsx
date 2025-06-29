@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { DataTablePagination } from '@/components/shared/data-table-pagination';
 import { Button } from '@/components/ui/button';
-import { MoveLeft } from 'lucide-react';
+import { MoveLeft, Wallet } from 'lucide-react';
 import { useSelector } from 'react-redux';
 
 export default function AgentReferralPage() {
@@ -89,6 +89,7 @@ export default function AgentReferralPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead className='text-right'>Acount History</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -97,6 +98,20 @@ export default function AgentReferralPage() {
                   <TableCell>{user?.name}</TableCell>
                   <TableCell>{user?.email}</TableCell>
                   <TableCell className="capitalize">{user.role}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        navigate(
+                          `/dashboard/agents/referral/account-history/${user._id}`
+                        )
+                      }
+                      className="hover:bg-indigo/90 bg-lime-600 text-white"
+                    >
+                      <Wallet className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

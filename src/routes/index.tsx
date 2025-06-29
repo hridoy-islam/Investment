@@ -35,6 +35,8 @@ import InvestorTransactionPage from '@/pages/investor/investor-transaction';
 import SaleLogTransactionPage from '@/pages/investment/view-saleLog';
 import AgentTransactionPage from '@/pages/agent-transactions';
 import AgentTransactionHistoryPage from '@/pages/agent/accountHistory';
+import AgentAllTransactionPage from '@/pages/agent/agent-transaction';
+import InvestorAMLPage from '@/pages/investor/aml-page';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -76,6 +78,10 @@ export default function AppRouter() {
           element: <AgentTransactionPage />
         },
         {
+          path: 'agent/transactions',
+          element: <AgentAllTransactionPage />
+        },
+        {
           path: 'agent/referral',
           element: <AgentReferralPage />
         },
@@ -90,6 +96,10 @@ export default function AppRouter() {
         {
           path: 'investors',
           element: <InvestorPage />
+        },
+        {
+          path: 'investor/aml/:id',
+          element: <InvestorAMLPage />
         },
         {
           path: 'investors/transactions',

@@ -358,7 +358,7 @@ export default function InvestorAccountHistoryPage() {
                                     setPaidAmount('');
                                     setNote('');
                                   }}
-                                  disabled={data?.status === 'block'}
+                                  disabled={data?.status === 'block' || dueAmt=== 0 }
                                 >
                                   Make Payment <PoundSterlingIcon className="ml-2 h-4 w-4" />
                                 </Button>
@@ -404,7 +404,7 @@ export default function InvestorAccountHistoryPage() {
                               <div key={i} className="flex flex-col sm:flex-row sm:justify-between gap-2 border border-gray-300  p-3 rounded-md text-sm">
                                 <div className="flex flex-row items-center gap-4">
                                   <p className="font-medium text-black">
-                                    {log.createdAt ? new Date(log.createdAt).toLocaleDateString('en-GB') : 'N/A'}
+                                    {moment(log.createdAt).format('DD MMM YYYY') }
                                   </p>
 
                                   {(log.isLoading || (loadingLogTxId === tx._id && log._id === 'temp-loading')) ? (

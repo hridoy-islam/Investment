@@ -15,6 +15,19 @@ import { BlinkingDots } from '@/components/shared/blinking-dots';
 import Select from 'react-select';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+
+
 
 interface InvestorParticipant {
   _id: string;
@@ -45,11 +58,18 @@ export default function ViewInvestorPage() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [project, setProject] = useState<any>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editingParticipant, setEditingParticipant] = useState<any>(null);
+  const [isEditRateModalOpen, setIsEditRateModalOpen] = useState(false);
+  const [editingRateParticipant, setEditingRateParticipant] =
+    useState<InvestorParticipant | null>(null);
+  const [newCommissionRate, setNewCommissionRate] = useState<number | null>(
+    null
+  );
+    const [openDialogId, setOpenDialogId] = useState<string | null>(null);
+  
 
   const { id } = useParams(); // investmentId
   const navigate = useNavigate();
-
+  const { toast } = useToast();
   const fetchParticipants = async (page: number, limit: number) => {
     setLoading(true);
     try {
@@ -100,29 +120,29 @@ export default function ViewInvestorPage() {
     setSubmitLoading(true);
 
     try {
-      if (isEditMode && editingParticipant) {
-        await axiosInstance.patch(
-          `/investment-participants/${editingParticipant._id}`,
-          {
-            agentCommissionRate: Number(data.agentCommissionRate),
-            amount: Number(data.amount)
-          }
-        );
-      } else {
-        if (!selectedInvestor?.value) return;
+      if (!selectedInvestor?.value) return;
 
-        await axiosInstance.post('/investment-participants', {
-          investorId: selectedInvestor.value,
-          investmentId: id,
-          agentCommissionRate: Number(data.agentCommissionRate),
-          amount: Number(data.amount)
-        });
-      }
+      await axiosInstance.post('/investment-participants', {
+        investorId: selectedInvestor.value,
+        investmentId: id,
+        agentCommissionRate: Number(data.agentCommissionRate),
+        amount: Number(data.amount)
+      });
 
-      fetchParticipants(currentPage, entriesPerPage); // Refresh list
+      fetchParticipants(currentPage, entriesPerPage);
+      toast({
+        title: 'Investment Created'
+      });
       closeModal();
     } catch (error) {
       console.error('Error submitting participant:', error);
+      toast({
+        title:
+          error?.response?.data?.message ||
+          'Failed to add investment participant.',
+        className: 'bg-destructive text-white border-none'
+      });
+            closeModal();
     } finally {
       setSubmitLoading(false);
     }
@@ -137,7 +157,6 @@ export default function ViewInvestorPage() {
     setIsModalOpen(false);
     setIsEditMode(false);
     setSelectedInvestor(null);
-    setEditingParticipant(null);
     reset();
   };
 
@@ -206,9 +225,10 @@ export default function ViewInvestorPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>Investment Title</TableHead>
                 <TableHead>Investment Amount</TableHead>
-                <TableHead>Agent Commission %</TableHead>
                 <TableHead>Share</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead className='text-center'>Add Capital</TableHead>
+                <TableHead className='text-center'>Agent Commission %</TableHead>
+                <TableHead className="text-right">Transaction Log</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -230,31 +250,135 @@ export default function ViewInvestorPage() {
                       : '—'}
                   </TableCell>
                   <TableCell>
-                    {participant?.agentCommissionRate || '-'}%
-                  </TableCell>
-                  <TableCell>
                     {participant?.amount && project?.amountRequired
                       ? `${((participant.amount * 100) / project.amountRequired).toFixed(2)}%`
                       : '—'}
                   </TableCell>
-                  <TableCell className="flex flex-row justify-end gap-4 text-right">
+
+ <TableCell className="text-center">
+                    <Dialog
+                      open={participant._id === openDialogId}
+                      onOpenChange={(isOpen) =>
+                        setOpenDialogId(isOpen ? participant._id : null)
+                      }
+                    >
+                      <DialogTrigger asChild>
+                        <Button
+                          size="icon"
+                          className="bg-blue-500 text-white hover:bg-blue-600"
+                          onClick={() => setOpenDialogId(participant._id)}
+                        >
+                          <Wallet className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Invest More</DialogTitle>
+                        </DialogHeader>
+
+                        <form
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+
+                            const form = e.currentTarget;
+                            const formData = new FormData(form);
+                            const amountToAdd = parseFloat(
+                              formData.get('extraAmount') as string
+                            );
+
+                            if (isNaN(amountToAdd) || amountToAdd <= 0) {
+                              toast({
+                                title: 'Invalid amount',
+                                description:
+                                  'Please enter a valid amount greater than 0',
+                                variant: 'destructive'
+                              });
+                              return;
+                            }
+
+                            try {
+                              await axiosInstance.patch(
+                                `/investment-participants/${participant._id}`,
+                                {
+                                  amount: amountToAdd
+                                }
+                              );
+
+                              toast({
+                                title: 'Success',
+                                description:
+                                  'Additional investment added successfully',
+                                className: 'bg-theme border-none text-white'
+                              });
+
+                              setOpenDialogId(null); // Close dialog
+                              fetchProject(); // Refresh data
+                            } catch (error) {
+                              toast({
+                                title:
+                                  error.response?.data?.message ||
+                                  'Failed to add more capital',
+                                variant: 'destructive'
+                              });
+                               setOpenDialogId(null);
+                            }
+                          }}
+                          className="space-y-4 pt-4"
+                        >
+                          <div>
+                            <Label htmlFor="extraAmount">Amount (£)</Label>
+                            <Input
+                              name="extraAmount"
+                              id="extraAmount"
+                              type="number"
+                              step="any"
+                              min="0"
+                              placeholder="Enter amount"
+                            />
+                          </div>
+
+                          <DialogFooter className="flex justify-end gap-2">
+                            <DialogTrigger asChild>
+                              <Button type="button" variant="outline">
+                                Cancel
+                              </Button>
+                            </DialogTrigger>
+                            <Button
+                              type="submit"
+                              className="bg-theme text-white hover:bg-theme/90"
+                            >
+                              Submit
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </TableCell>
+                  
+                  <TableCell className="text-center">
+                    <div className='flex flex-row items-center justify-center gap-4'>
+<p>
+
+                    {`${participant?.agentCommissionRate}%` || '-'}{' '}
+</p>
                     <Button
                       variant="ghost"
                       className="bg-theme text-white hover:bg-theme/90"
                       size="icon"
                       onClick={() => {
-                        setEditingParticipant(participant);
-                        setIsEditMode(true);
-                        setIsModalOpen(true);
-                        reset({
-                          amount: participant.amount,
-                          agentCommissionRate: participant.agentCommissionRate
-                        });
+                        setEditingRateParticipant(participant);
+                        setNewCommissionRate(
+                          participant.agentCommissionRate || 0
+                        );
+                        setIsEditRateModalOpen(true);
                       }}
                     >
                       <Pen className="h-4 w-4" />
                     </Button>
+                      </div>
+                  </TableCell>
 
+                  <TableCell className=" gap-4 text-right">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -263,7 +387,7 @@ export default function ViewInvestorPage() {
                           `/dashboard/investor/projects/account-history/${participant._id}`
                         )
                       }
-                       className="hover:bg-indigo/90 bg-lime-600 text-white"
+                      className="hover:bg-indigo/90 bg-lime-600 text-white"
                     >
                       <Wallet className="h-4 w-4" />
                     </Button>
@@ -290,32 +414,19 @@ export default function ViewInvestorPage() {
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
             <h3 className="mb-4 text-lg font-semibold">Add Investor</h3>
             <form onSubmit={handleSubmit(onSubmit)}>
-              {isEditMode ? (
-                <div className="mb-4">
-                  <label className="mb-2 block text-sm font-medium">
-                    Investor
-                  </label>
-                  <input
-                    className="w-full rounded border border-gray-300 bg-gray-100 px-3 py-2"
-                    value={`${editingParticipant?.investorId?.name} (${editingParticipant?.investorId?.email})`}
-                    disabled
-                  />
-                </div>
-              ) : (
-                <div className="mb-4">
-                  <label className="mb-2 block text-sm font-medium">
-                    Select Investor
-                  </label>
-                  <Select
-                    options={filteredInvestorOptions}
-                    value={selectedInvestor}
-                    onChange={(option) => setSelectedInvestor(option)}
-                    placeholder="Search investor..."
-                  />
-                </div>
-              )}
+              <div className="mb-4">
+                <label className="mb-2 block text-sm font-medium">
+                  Select Investor
+                </label>
+                <Select
+                  options={filteredInvestorOptions}
+                  value={selectedInvestor}
+                  onChange={(option) => setSelectedInvestor(option)}
+                  placeholder="Search investor..."
+                />
+              </div>
 
-              {(selectedInvestor || isEditMode) && (
+              {selectedInvestor && (
                 <div>
                   <div className="mb-4">
                     <label className="mb-2 block text-sm font-medium">
@@ -378,6 +489,63 @@ export default function ViewInvestorPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isEditRateModalOpen && editingRateParticipant && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="mb-4 text-lg font-semibold">
+              Edit Agent Commission Rate
+            </h3>
+
+            <div className="mb-4">
+              <label className="mb-2 block text-sm font-medium">
+                Agent Commission Rate (%)
+              </label>
+              <input
+                type="number"
+                value={newCommissionRate === null ? '' : newCommissionRate}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setNewCommissionRate(value === '' ? null : Number(value));
+                }}
+                min="0"
+                step="0.01"
+                className="w-full rounded border border-gray-300 px-3 py-2"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsEditRateModalOpen(false);
+                  setEditingRateParticipant(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-theme text-white hover:bg-theme/90"
+                onClick={async () => {
+                  try {
+                    await axiosInstance.patch(
+                      `/investment-participants/${editingRateParticipant._id}`,
+                      { agentCommissionRate: Number(newCommissionRate) }
+                    );
+                    fetchParticipants(currentPage, entriesPerPage);
+                    setIsEditRateModalOpen(false);
+                    setEditingRateParticipant(null);
+                  } catch (error) {
+                    console.error('Error updating commission rate:', error);
+                  }
+                }}
+              >
+                Save
+              </Button>
+            </div>
           </div>
         </div>
       )}

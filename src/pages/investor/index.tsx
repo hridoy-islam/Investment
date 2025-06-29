@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pen, MoveLeft, Building2, HandCoins, Landmark, Building } from 'lucide-react';
+import { Plus, Pen, MoveLeft, Building2, HandCoins, Landmark, Building, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -185,6 +185,7 @@ export default function InvestorPage() {
                 <TableHead>Investor Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Agent</TableHead>
+                <TableHead>AML</TableHead>
                 <TableHead>Projects</TableHead>
                 <TableHead>Banks</TableHead>
                 <TableHead className="w-32 text-center">Actions</TableHead>
@@ -197,6 +198,25 @@ export default function InvestorPage() {
                   <TableCell>{investor.name}</TableCell>
                   <TableCell>{investor.email}</TableCell>
                   <TableCell>{investor.agent?.name || '-'}</TableCell>
+
+
+                  <TableCell>
+                    <Button
+                    size='icon'
+                      className="hover:bg-rose-500/90 bg-rose-500 text-white"
+                      onClick={() =>
+                        navigate(
+                          `/dashboard/investor/aml/${investor?._id}`
+                        )
+                      }
+                    >
+                      <File className="h-4 w-4"/>
+                    </Button  >
+                  </TableCell>
+
+
+
+
                   <TableCell>
                     <Button
                     size='icon'

@@ -224,29 +224,32 @@ export default function InvestmentTransactionPage() {
 
                       <div className=" -mt-2  space-y-2 px-4 pb-4">
                         {allLogs.length === 0 ? (
-                          <p className="text-center text-sm text-black">
+                          <p className="text-center text-lg text-black">
                             No logs found.
                           </p>
                         ) : (
                           allLogs.map((log, index) => (
                             <div
                               key={index}
-                              className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white px-4 py-1 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                              className="flex  flex-col gap-16 rounded-md border border-gray-200 bg-white px-4 py-1 shadow-sm sm:flex-row sm:items-center sm:justify-between"
                             >
-                              <div className="flex flex-row gap-4 text-sm text-black">
+                              <div className="flex  flex-row gap-4 text-lg text-black">
                                 {log.transactionType === 'profitPayment' ? (
-                                  <div className="flex flex-row gap-4">
-                                    <div className="font-medium">
+                                  <div className="flex text-sm flex-row gap-8">
+                                   
+                                      <p className='font-medium'>
+
                                       {moment(log?.createdAt).format(
                                         'D MMM YYYY'
                                       )}
+                                      </p>
                                       <span className="ml-4  text-black">
                                         {log._id}
                                       </span>
-                                    </div>
+                                  
                                     <div>
-                                      Payment Initiated To{' '}
-                                      <span className="font-semibold">
+                                      Payment Initiated to{' '}
+                                      <span className="">
                                         {log.investorName}
                                       </span>
                                     </div>
@@ -256,35 +259,22 @@ export default function InvestmentTransactionPage() {
                                       </span>
                                     )}
                                   </div>
-                                ) : log.transactionType ? (
-                                  <p className="font-medium">
-                                    {moment(log?.createdAt).format(
-                                      'D MMM YYYY'
-                                    )}
-                                    <span className="ml-4  text-black">
-                                      {log._id}
-                                    </span>
-                                    {' - '}
-                                    <span className="font-semibold text-green-600">
-                                      <span className="font-semibold text-black">
-                                        {log.investorName} -
-                                      </span>{' '}
-                                      Initial investment successfully created
-                                    </span>
-                                  </p>
-                                ) : (
+                                )  : (
                                   <>
-                                    <p className="font-medium">
+                                    <div className="text-sm flex flex-row gap-8">
+                                      <p className='font-medium'>
+
                                       {moment(log?.createdAt).format(
                                         'D MMM YYYY'
                                       )}
-                                      <span className="ml-4  text-black">
+                                      </p>
+                                      <span className="ml-4   text-black">
                                         {log._id}
                                       </span>
-                                    </p>
                                     <p className="text-black">
-                                      {log?.message || ''}
+                                      {log?.message || log.note ||''}
                                     </p>
+                                    </div>
                                   </>
                                 )}
                               </div>

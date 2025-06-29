@@ -25,41 +25,41 @@ export default function InvestorTransactionPage() {
   const navigate = useNavigate();
   const { user } = useSelector((state: any) => state.auth);
 
- const fetchAllTransactions = async () => {
-  try {
-    setLoading(true);
-    const response = await axiosInstance.get(
-      `/transactions?investorId=${user._id}`
-    );
-    const data = response.data.data.result;
+  const fetchAllTransactions = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get(
+        `/transactions?investorId=${user._id}`
+      );
+      const data = response.data.data.result;
 
-    const flattened = data.flatMap((transaction) => {
-      const allLogs = [
-        ...(transaction.logs || []),
-        ...(transaction.paymentLog || [])
-      ];
+      const flattened = data.flatMap((transaction) => {
+        const allLogs = [
+          ...(transaction.logs || []),
+          ...(transaction.paymentLog || [])
+        ];
 
-      return allLogs
-        .filter((log) => log.type !== 'commissionPaymentMade') // ✅ filter here
-        .map((log) => ({
-          ...log,
-          investmentTitle: transaction?.investmentId?.title || 'N/A',
-          month: transaction.month,
-          createdAt: log.createdAt,
-          paidAmount: log.paidAmount,
-          note: log.note,
-          transactionType: log.transactionType
-        }));
-    });
+        return allLogs
+          .filter((log) => log.type !== 'commissionPaymentMade') // ✅ filter here
+          .map((log) => ({
+            ...log,
+            investmentTitle: transaction?.investmentId?.title || 'N/A',
+            month: transaction.month,
+            createdAt: log.createdAt,
+            paidAmount: log.paidAmount,
+            note: log.note,
+            transactionType: log.transactionType
+          }));
+      });
 
-    setAllTransactions(flattened);
-  } catch (error) {
-    console.error('Error fetching transactions:', error);
-    setAllTransactions([]);
-  } finally {
-    setLoading(false);
-  }
-};
+      setAllTransactions(flattened);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      setAllTransactions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     const filtered = allTransactions
       .filter((tx) => tx.month?.startsWith(selectedYear))
@@ -87,23 +87,22 @@ export default function InvestorTransactionPage() {
       <CardContent className="space-y-3 rounded-md bg-white p-4 shadow-2xl">
         <div className="flex items-center justify-between">
           <div className="flex w-full flex-row items-center justify-between gap-4">
-            <div className='flex flex-row items-center gap-6'>
-
-            <h1 className="text-2xl font-semibold">Transaction Logs</h1>
-            <div className="flex justify-end">
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Select year" />
-            </SelectTrigger>
-            <SelectContent>
-              {generateYears().map((year) => (
-                <SelectItem key={year} value={year}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="flex flex-row items-center gap-6">
+              <h1 className="text-2xl font-semibold">Transaction Logs</h1>
+              <div className="flex justify-end">
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {generateYears().map((year) => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <Button
               variant="ghost"
@@ -118,7 +117,6 @@ export default function InvestorTransactionPage() {
         </div>
 
         {/* Year Filter */}
-        
 
         {/* Transaction List */}
         <div>
@@ -146,20 +144,25 @@ export default function InvestorTransactionPage() {
                       })}
                     </p>
 
+                    <p className="font-medium">{log._id}</p>
+
                     <p className="font-semibold">{log.investmentTitle}</p>
                     {log.transactionType === 'profitPayment' ? (
-  <div className="italic text-gray-600">
-    Payment Initiated{log.note ? ` (${log.note})` : ''}
-  </div>
-) : log.note ? (
-  <p className="italic text-gray-600">{log.note}</p>
-) : log.message ? (
-  <p className="italic text-gray-600">{log.message}</p>
-) : null}
-
+                      <div className=" text-black">
+                        Payment Initiated{log.note ? ` (${log.note})` : ''}
+                      </div>
+                    ) : log.note ? (
+                      <p className=" text-black">{log.note}</p>
+                    ) : log.message ? (
+                      <p className=" text-black">{log.message}</p>
+                    ) : null}
                   </div>
-                  <div className="text-right font-semibold text-gray-900">
-                    £{log.paidAmount || 0}
+                  <div className="text-right font-semibold text-black">
+                    {log?.paidAmount ? (
+                      <>£{log.paidAmount}</>
+                    ) : log?.metadata?.amount ? (
+                      <>£{log.metadata.amount}</>
+                    ) : null}
                   </div>
                 </div>
               ))}

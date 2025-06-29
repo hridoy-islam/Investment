@@ -511,7 +511,7 @@ export default function EditInvestment() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="amountRequired">Amount Required *</Label>
                       <div className="relative">
@@ -550,44 +550,7 @@ export default function EditInvestment() {
                 </CardContent>
               </Card>
              
-              {/* Project Summary */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Project Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Amount Required:</span>
-                      <span className="font-medium">
-                        {watchedValues.amountRequired
-                          ? formatCurrency(watchedValues.amountRequired)
-                          : '$0'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Admin Cost:</span>
-                      <span className="font-medium">
-                        {watchedValues.adminCost
-                          ? `%${watchedValues.adminCost}`
-                          : '%0'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Documents:</span>
-                      <span className="font-medium">{documents.length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Image:</span>
-                      <span className="font-medium">
-                        {featuredImage || investment?.image
-                          ? 'Uploaded'
-                          : 'None'}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          
                {/* Featured Image */}
               <Card>
                 <CardHeader>
@@ -652,6 +615,45 @@ export default function EditInvestment() {
                           </div>
                         )}
                       </label>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+                  {/* Project Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Amount Required:</span>
+                      <span className="font-medium">
+                        {watchedValues.amountRequired
+                          ? formatCurrency(watchedValues.amountRequired)
+                          : '$0'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Admin Cost:</span>
+                      <span className="font-medium">
+                        {watchedValues.adminCost
+                          ? `%${watchedValues.adminCost}`
+                          : '%0'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Documents:</span>
+                      <span className="font-medium">{documents.length}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Image:</span>
+                      <span className="font-medium">
+                        {featuredImage || investment?.image
+                          ? 'Uploaded'
+                          : 'None'}
+                      </span>
                     </div>
                   </div>
                 </CardContent>

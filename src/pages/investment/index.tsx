@@ -282,12 +282,13 @@ export default function InvestmentPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40vw]">Project Name</TableHead>
+                <TableHead className="w-[30vw]">Project Name</TableHead>
                 <TableHead>Investment Amount</TableHead>
+                <TableHead>Admin Cost</TableHead>
                 <TableHead className="text-center">Sale/CMV</TableHead>
                 <TableHead className="text-center">Raise Capital</TableHead>
                 
-                <TableHead className="text-center">Transaction Log</TableHead>
+                <TableHead className="text-center">Project Log</TableHead>
                 <TableHead className="text-center">Investors</TableHead>
                 <TableHead className="text-center">Detail</TableHead>
                 <TableHead className="text-center">Edit</TableHead>
@@ -300,6 +301,9 @@ export default function InvestmentPage() {
                   <TableCell>{investment.title}</TableCell>
                   <TableCell>
                     {investment?.amountRequired?.toFixed(2) || 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    {`${investment?.adminCost?.toFixed(2)}%` || '-'}
                   </TableCell>
                   <TableCell className="text-center">
                     <Button
