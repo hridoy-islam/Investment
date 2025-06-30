@@ -323,7 +323,7 @@ export default function AgentTransactionHistoryPage() {
                         <span>{`${monthName} ${currentYear}`}</span>
 
                         <span className="font-semibold text-blue-500">
-                          Profit: £{profit.toFixed(2)}
+                          Commission: £{profit.toFixed(2)}
                         </span>
                         <span className="font-semibold text-rose-500">
                           Due: £{due.toFixed(2)}

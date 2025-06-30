@@ -60,9 +60,9 @@ export default function ReferralPage() {
         <div className="flex flex-row items-center justify-between">
           <div className="space-y-2 py-4">
             {agent && (
-              <p className="text-xl font-semibold">Agent: {agent?.name}</p>
+              <p className="text-xl font-semibold">Agent: {agent?.name} Referrals</p>
             )}
-            <h1 className="text-xl font-semibold">Referrals</h1>
+            
           </div>
           <div>
             <Button
