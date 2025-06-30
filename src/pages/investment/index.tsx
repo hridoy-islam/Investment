@@ -179,7 +179,7 @@ export default function InvestmentPage() {
   // Set Sale Price Handlers
   const handleSetSalePriceClick = (investment) => {
     setSelectedInvestmentId(investment._id);
-    setSalePrice(investment.saleAmount || '');
+    setSalePrice( '');
     setSelectedAmountRequired(investment.amountRequired || 0);
     setSelectedProjectName(investment.title || ''); // <- new line
     setSalePriceDialogOpen(true);

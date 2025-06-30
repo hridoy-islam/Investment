@@ -27,8 +27,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
-
-
 interface InvestorParticipant {
   _id: string;
   investorId?: {
@@ -64,8 +62,7 @@ export default function ViewInvestorPage() {
   const [newCommissionRate, setNewCommissionRate] = useState<number | null>(
     null
   );
-    const [openDialogId, setOpenDialogId] = useState<string | null>(null);
-  
+  const [openDialogId, setOpenDialogId] = useState<string | null>(null);
 
   const { id } = useParams(); // investmentId
   const navigate = useNavigate();
@@ -142,7 +139,7 @@ export default function ViewInvestorPage() {
           'Failed to add investment participant.',
         className: 'bg-destructive text-white border-none'
       });
-            closeModal();
+      closeModal();
     } finally {
       setSubmitLoading(false);
     }
@@ -185,9 +182,9 @@ export default function ViewInvestorPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex flex-col">
+        <div className="flex flex-row gap-2">
           <h2 className="text-xl font-bold">{project?.title}</h2>
-          <h2 className="text-lg font-medium">Investor Participants</h2>
+          <h2 className="text-xl font-bold">Investor Participants</h2>
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -223,11 +220,13 @@ export default function ViewInvestorPage() {
               <TableRow>
                 <TableHead>Investor Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Investment Title</TableHead>
-                <TableHead>Investment Amount</TableHead>
+                <TableHead>Project Name</TableHead>
+                <TableHead>Invested Amount</TableHead>
                 <TableHead>Share</TableHead>
-                <TableHead className='text-center'>Add Capital</TableHead>
-                <TableHead className='text-center'>Agent Commission %</TableHead>
+                <TableHead className="text-center">Add Capital</TableHead>
+                <TableHead className="text-center">
+                  Agent Commission %
+                </TableHead>
                 <TableHead className="text-right">Transaction Log</TableHead>
               </TableRow>
             </TableHeader>
@@ -255,7 +254,7 @@ export default function ViewInvestorPage() {
                       : '—'}
                   </TableCell>
 
- <TableCell className="text-center">
+                  <TableCell className="text-center">
                     <Dialog
                       open={participant._id === openDialogId}
                       onOpenChange={(isOpen) =>
@@ -273,7 +272,11 @@ export default function ViewInvestorPage() {
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Invest More</DialogTitle>
+                          <DialogTitle>Raise Fund</DialogTitle>
+                          <DialogTitle>
+                            Investor Name:{' '}
+                            {participant.investorId?.name || 'N/A'}
+                          </DialogTitle>
                         </DialogHeader>
 
                         <form
@@ -312,7 +315,16 @@ export default function ViewInvestorPage() {
                               });
 
                               setOpenDialogId(null); // Close dialog
-                              fetchProject(); // Refresh data
+                              setParticipants((prev) =>
+                                prev.map((p) =>
+                                  p._id === participant._id
+                                    ? {
+                                        ...p,
+                                        amount: (p.amount || 0) + amountToAdd
+                                      }
+                                    : p
+                                )
+                              );
                             } catch (error) {
                               toast({
                                 title:
@@ -320,7 +332,7 @@ export default function ViewInvestorPage() {
                                   'Failed to add more capital',
                                 variant: 'destructive'
                               });
-                               setOpenDialogId(null);
+                              setOpenDialogId(null);
                             }
                           }}
                           className="space-y-4 pt-4"
@@ -354,28 +366,25 @@ export default function ViewInvestorPage() {
                       </DialogContent>
                     </Dialog>
                   </TableCell>
-                  
-                  <TableCell className="text-center">
-                    <div className='flex flex-row items-center justify-center gap-4'>
-<p>
 
-                    {`${participant?.agentCommissionRate}%` || '-'}{' '}
-</p>
-                    <Button
-                      variant="ghost"
-                      className="bg-theme text-white hover:bg-theme/90"
-                      size="icon"
-                      onClick={() => {
-                        setEditingRateParticipant(participant);
-                        setNewCommissionRate(
-                          participant.agentCommissionRate || 0
-                        );
-                        setIsEditRateModalOpen(true);
-                      }}
-                    >
-                      <Pen className="h-4 w-4" />
-                    </Button>
-                      </div>
+                  <TableCell className="text-center">
+                    <div className="flex flex-row items-center justify-center gap-4">
+                      <p>{`${participant?.agentCommissionRate}%` || '-'} </p>
+                      <Button
+                        variant="ghost"
+                        className="bg-theme text-white hover:bg-theme/90"
+                        size="icon"
+                        onClick={() => {
+                          setEditingRateParticipant(participant);
+                          setNewCommissionRate(
+                            participant.agentCommissionRate || 0
+                          );
+                          setIsEditRateModalOpen(true);
+                        }}
+                      >
+                        <Pen className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
 
                   <TableCell className=" gap-4 text-right">
@@ -535,7 +544,16 @@ export default function ViewInvestorPage() {
                       `/investment-participants/${editingRateParticipant._id}`,
                       { agentCommissionRate: Number(newCommissionRate) }
                     );
-                    fetchParticipants(currentPage, entriesPerPage);
+                    setParticipants((prev) =>
+                      prev.map((p) =>
+                        p._id === editingRateParticipant._id
+                          ? {
+                              ...p,
+                              agentCommissionRate: Number(newCommissionRate)
+                            }
+                          : p
+                      )
+                    );
                     setIsEditRateModalOpen(false);
                     setEditingRateParticipant(null);
                   } catch (error) {

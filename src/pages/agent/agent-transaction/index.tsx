@@ -124,9 +124,7 @@ export default function AgentAllTransactionPage() {
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">
-              {transactions[0]?.investmentId?.title}
-            </h1>
+           
             <div className="flex flex-row items-start gap-4">
               <h1 className="text-2xl font-medium">Transaction History</h1>
               {/* Year Selector */}
@@ -172,86 +170,118 @@ export default function AgentAllTransactionPage() {
               </p>
             ) : (
               <div className="grid grid-cols-1 gap-5">
-               {(() => {
-  // Combine all logs from all transactions
-  const allLogs: Array<any> = [];
+                {(() => {
+                  // Combine all logs from all transactions
+                  const allLogs: Array<any> = [];
 
-  transactions.forEach((tx) => {
-    if (tx.paymentLog && tx.paymentLog.length > 0) {
-      tx.paymentLog.forEach((log: any) => {
-        allLogs.push({
-          ...log,
-          investorName: tx.investorId?.name,
-          createdAt: log.createdAt || tx.createdAt,
-          isPaymentLog: true
-        });
-      });
-    }
+                  transactions.forEach((tx) => {
+                    if (tx.paymentLog && tx.paymentLog.length > 0) {
+                      tx.paymentLog.forEach((log: any) => {
+                        allLogs.push({
+                          ...log,
+                          investorName: tx.investorId?.name,
+                          createdAt: log.createdAt || tx.createdAt,
+                          isPaymentLog: true
+                        });
+                      });
+                    }
 
-    if (tx.logs && tx.logs.length > 0) {
-      tx.logs.forEach((log: any) => {
-        allLogs.push({
-          ...log,
-          investorName: tx.investorId?.name,
-          createdAt: log.createdAt || tx.createdAt,
-          isPaymentLog: false
-        });
-      });
-    }
-  });
+                    if (tx.logs && tx.logs.length > 0) {
+                      tx.logs.forEach((log: any) => {
+                        allLogs.push({
+                          ...log,
+                          investorName: tx.investorId?.name,
+                          createdAt: log.createdAt || tx.createdAt,
+                          isPaymentLog: false
+                        });
+                      });
+                    }
+                  });
 
-  // Sort logs by date descending
-  allLogs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                  // Sort logs by date descending
+                  allLogs.sort(
+                    (a, b) =>
+                      new Date(b.createdAt).getTime() -
+                      new Date(a.createdAt).getTime()
+                  );
 
-  return (
-    <div>
-      
+                  return (
+                    <div>
+                      <div className="space-y-2 px-4 pb-4">
+                        {allLogs.length === 0 ? (
+                          <p className="text-center text-sm text-black">
+                            No logs found.
+                          </p>
+                        ) : (
+                          allLogs.map((log, index) => (
+                            <div
+                              key={index}
+                              className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white px-4 py-1 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                            >
+                              <div className="flex flex-row gap-4 text-sm text-black">
+                                {log.transactionType === 'commissionPayment' ? (
+                                  <div className="flex flex-row gap-8 ">
+                                    <p className='font-medium'>
+                                      {moment(log?.createdAt).format(
+                                        'D MMM YYYY'
+                                      )}
+                                    </p>
+                                    <span className=" text-black">
+                                      {log._id}
+                                    </span>
+                                      <p>
+                                        Payment Initiated for Investor{' '}
+                                        {log.investorName}
+                                      </p>
+                                  </div>
+                                ) : log.type === 'commissionCalculated' ? (
+                                  <div className="flex flex-row gap-8 text-sm text-black">
+                                    <p className="font-medium">
+                                      {moment(log?.createdAt).format(
+                                        'D MMM YYYY'
+                                      )}
+                                    </p>
+                                    <span className="text-black">
+                                      {log._id}
+                                    </span>
 
-      <div className="space-y-2 px-4 pb-4">
-        {allLogs.length === 0 ? (
-          <p className="text-center text-sm text-black">No logs found.</p>
-        ) : (
-          allLogs.map((log, index) => (
-            <div
-              key={index}
-              className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white px-4 py-1 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="flex flex-row gap-4 text-sm text-black">
-                {log.transactionType === 'commissionPayment' ? (
-                  <div className="flex flex-row gap-4 font-medium">
-                    <p>{moment(log?.createdAt).format('D MMM YYYY')}</p>
-                    <span className="ml-4 text-black">{log._id}</span>
-                    <span className="font-semibold text-green-600 flex flex-row gap-2">
-                      <p>Payment Initiated for Investor  {log.investorName}</p>
-                      
-                    </span>
-                  </div>
-                ) : (
-                  <>
-                    <p className="font-medium">
-                      {moment(log?.createdAt).format('D MMM YYYY')}
-                      <span className="ml-4 text-black">{log._id}</span>
-                    </p>
-                    <p className="text-black">{log?.message || ''}</p>
-                  </>
-                )}
-              </div>
+                                    <p className="text-black ">
+                                      Commission distributed for{' '}
+                                      {log.metadata?.investorName}'s investment{' '}
+                                      {log.metadata?.investmentName}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <p className="font-medium">
+                                      {moment(log?.createdAt).format(
+                                        'D MMM YYYY'
+                                      )}
+                                      <span className=" text-black">
+                                        {log._id}
+                                      </span>
+                                    </p>
+                                    <p className="text-black">
+                                      {log?.message || ''}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
 
-              <div className="text-right font-semibold text-black">
-                {log?.paidAmount > 0
-                  ? `£${log.paidAmount}`
-                  : log?.metadata?.amount > 0
-                  ? `£${log.metadata.amount}`
-                  : ''}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-})()}
-
+                              <div className="text-right font-semibold text-black">
+                                {log?.paidAmount > 0
+                                  ? `£${log.paidAmount}`
+                                  : log?.metadata?.amount > 0
+                                    ? `£${log.metadata.amount}`
+                                    : ''}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </>

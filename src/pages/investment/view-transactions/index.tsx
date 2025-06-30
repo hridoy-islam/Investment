@@ -122,14 +122,14 @@ export default function InvestmentTransactionPage() {
       <CardContent className="px-4 py-6 sm:px-6">
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
+          <div className="flex flex-row items-center gap-4">
             <h1 className="text-2xl font-bold">
               {transactions[0]?.investmentId?.title}
             </h1>
-            <div className="flex flex-row items-start gap-4">
+            <div className="flex flex-row items-center gap-4">
               <h1 className="text-2xl font-medium">Transaction History</h1>
               {/* Year Selector */}
-              <div className="mb-6 flex items-center gap-3">
+              <div className=" flex items-center gap-3">
                 <label htmlFor="year-select" className="text-sm font-medium">
                   Select Year:
                 </label>
@@ -235,18 +235,16 @@ export default function InvestmentTransactionPage() {
                             >
                               <div className="flex  flex-row gap-4 text-lg text-black">
                                 {log.transactionType === 'profitPayment' ? (
-                                  <div className="flex text-sm flex-row gap-8">
-                                   
-                                      <p className='font-medium'>
-
+                                  <div className="flex flex-row gap-8 text-sm">
+                                    <p className="font-medium">
                                       {moment(log?.createdAt).format(
                                         'D MMM YYYY'
                                       )}
-                                      </p>
-                                      <span className="ml-4  text-black">
-                                        {log._id}
-                                      </span>
-                                  
+                                    </p>
+                                    <span className="ml-4  text-black">
+                                      {log._id}
+                                    </span>
+
                                     <div>
                                       Payment Initiated to{' '}
                                       <span className="">
@@ -259,21 +257,20 @@ export default function InvestmentTransactionPage() {
                                       </span>
                                     )}
                                   </div>
-                                )  : (
+                                ) : (
                                   <>
-                                    <div className="text-sm flex flex-row gap-8">
-                                      <p className='font-medium'>
-
-                                      {moment(log?.createdAt).format(
-                                        'D MMM YYYY'
-                                      )}
+                                    <div className="flex flex-row gap-8 text-sm">
+                                      <p className="font-medium">
+                                        {moment(log?.createdAt).format(
+                                          'D MMM YYYY'
+                                        )}
                                       </p>
                                       <span className="ml-4   text-black">
                                         {log._id}
                                       </span>
-                                    <p className="text-black">
-                                      {log?.message || log.note ||''}
-                                    </p>
+                                      <p className="text-black">
+                                        {log?.message || log.note || ''}
+                                      </p>
                                     </div>
                                   </>
                                 )}

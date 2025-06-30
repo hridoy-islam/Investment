@@ -264,7 +264,7 @@ const AMLPage: React.FC<AMLProps> = () => {
       <Card className="border-0 shadow-none">
         <CardHeader>
           {/* <h2 className="text-2xl font-bold text-gray-900">AML Documents</h2> */}
-          <h2 className="text-3xl font-medium text-gray-900">AML For : {user?.name}</h2>
+          <h2 className="text-3xl font-medium text-gray-900">{user?.name} AML Document</h2>
 
         </CardHeader>
         <CardContent className="p-6">

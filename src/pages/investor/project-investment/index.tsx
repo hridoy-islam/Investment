@@ -209,12 +209,11 @@ export default function InvestmentProjectPage() {
       <CardContent>
         <div className="flex flex-row items-center justify-between">
           <div className="space-y-2 py-4">
-            {investor && (
+           
               <p className="text-xl font-semibold">
-                Investor: {investor?.name}
+                Investor: {investor?.name} Project List
               </p>
-            )}
-            <h1 className="text-xl font-semibold">Project List</h1>
+          
           </div>
           <div className="flex flex-row items-center gap-4">
             <Button
@@ -513,7 +512,8 @@ export default function InvestmentProjectPage() {
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Invest More</DialogTitle>
+                          <DialogTitle>Raise Fund</DialogTitle>
+                          <DialogTitle>Investor Name: {investor?.name || ''}</DialogTitle>
                         </DialogHeader>
 
                         <form

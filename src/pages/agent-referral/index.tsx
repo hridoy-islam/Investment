@@ -61,10 +61,9 @@ export default function AgentReferralPage() {
       <CardContent>
         <div className="flex flex-row items-center justify-between">
             <div className="space-y-2 py-4">
-              {agent && (
-                  <p className="text-xl font-semibold">Agent: {agent?.name}</p>
-              )}
-              <h1 className="text-xl font-semibold">Referrals</h1>
+       
+                  <p className="text-xl font-semibold">{agent?.name || 'Agent'}'s Referrals</p>
+     
             </div>
           <div>
              <Button

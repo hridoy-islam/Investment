@@ -40,7 +40,11 @@ export default function InvestorTransactionPage() {
         ];
 
         return allLogs
-          .filter((log) => log.type !== 'commissionPaymentMade') // ✅ filter here
+          .filter(
+      (log) =>
+        log.type !== 'commissionCalculated' &&
+        log.type !== 'commissionPaymentMade'
+    )
           .map((log) => ({
             ...log,
             investmentTitle: transaction?.investmentId?.title || 'N/A',

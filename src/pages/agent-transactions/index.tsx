@@ -121,11 +121,9 @@ export default function AgentTransactionPage() {
     <Card className="rounded-md border-none bg-white shadow-sm">
       <CardContent className="px-4 py-6 sm:px-6">
         {/* Header */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">
-              {transactions[0]?.investmentId?.title}
-            </h1>
+            
             <div className="flex flex-row items-start gap-4">
               <h1 className="text-2xl font-medium">Transaction History</h1>
               {/* Year Selector */}
@@ -253,7 +251,17 @@ export default function AgentTransactionPage() {
                                             Payment Initiated 
                                     </span>
                                   </div>
-                                ) : (
+                                ) : log.type === "commissionCalculated" ? (
+  <div className="flex flex-row  gap-4 text-sm text-black">
+      <p className="font-medium">
+        {moment(log?.createdAt).format('D MMM YYYY')}
+      </p>
+      <span className="text-black">{log._id}</span>
+    <p className="text-black ">
+      Commission distributed for {log.metadata?.investorName}'s investment {log.metadata?.investmentName}
+    </p>
+  </div>
+)  : (
                                   <>
                                     <div className="flex flex-row items-center gap-4">
                                       <p className='font-medium'>

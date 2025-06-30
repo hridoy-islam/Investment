@@ -8,14 +8,15 @@ import {
   FileText,
   ExternalLink,
   Upload,
-  CheckCircle
+  CheckCircle,
+  MoveLeft
 } from 'lucide-react';
 import { z } from 'zod';
 import { useSelector } from 'react-redux';
 import Loader from '@/components/shared/loader';
 import axiosInstance from '@/lib/axios';
 import { ImageUploader } from './components/document-uploader';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 export const amlSchema = z.object({
   image: z.string().optional(),
@@ -88,8 +89,8 @@ const InvestorAMLPage: React.FC<AMLProps> = () => {
   }, [documents, id, loading]);
 
   const hasChanges = () => {
-  return JSON.stringify(originalDocuments) !== JSON.stringify(documents);
-};
+    return JSON.stringify(originalDocuments) !== JSON.stringify(documents);
+  };
 
   const saveToServer = async (updatedDocuments: AMLFile) => {
     setSaving(true);
@@ -256,14 +257,24 @@ const InvestorAMLPage: React.FC<AMLProps> = () => {
     }
   ];
 
+  const navigate = useNavigate();
+
   return (
     <div className="">
       <Card className="border-0 shadow-none">
-        <CardHeader>
+        <CardHeader className="flex w-full  flex-row items-center justify-between">
           {/* <h2 className="text-2xl font-bold text-gray-900">AML Documents</h2> */}
           <h2 className="text-3xl font-medium text-gray-900">
-            AML For : {name}
+            {name} AML Document
           </h2>
+          <Button
+            size="sm"
+            className="bg-theme text-white hover:bg-theme/90"
+            onClick={() => navigate(-1)}
+          >
+            <MoveLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
         </CardHeader>
         <CardContent className="p-6">
           {loading ? (

@@ -20,7 +20,8 @@ const createInvestorSchema = z.object({
   email: z.string().email('Invalid email'),
   password: z.string().min(1, 'Password is required'),
   dateOfBirth: z.string().optional(),
-  address: z.string().optional()
+  address: z.string().optional(),
+   agent: z.string().optional() 
 });
 
 const editInvestorSchema = z.object({

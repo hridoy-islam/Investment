@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axiosInstance from '@/lib/axios';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { Button } from '@/components/ui/button';
 import { MoveLeft, PoundSterlingIcon, Loader2 } from 'lucide-react';
@@ -46,6 +41,7 @@ export default function AgentTransactionHistoryPage() {
   const navigate = useNavigate();
   const { user } = useSelector((state: any) => state.auth);
   const { toast } = useToast();
+  const [investorInfo, setInvestorInfo] = useState<any>(null);
 
   const generateYears = () => {
     const years = [];
@@ -59,6 +55,9 @@ export default function AgentTransactionHistoryPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const investorRes = await axiosInstance.get(`/users/${id}`);
+      setInvestorInfo(investorRes.data?.data);
+
       const agentTxRes = await axiosInstance.get('/agent-transactions', {
         params: { investorId: id }
       });
@@ -86,13 +85,15 @@ export default function AgentTransactionHistoryPage() {
       setLoading(false);
     }
   };
+  const commissionDue = selectedTx?.commissionDue || 0;
+  const isOverPayment = parseFloat(paidAmount || '0') > commissionDue;
 
   // New function to fetch single transaction data
   const fetchSingleTransaction = async (txId: string) => {
     try {
       const response = await axiosInstance.get(`/agent-transactions/${txId}`);
       const updatedTx = response.data?.data;
-      
+
       if (updatedTx) {
         setAgentTransactions((prevTxs) =>
           prevTxs.map((tx) => (tx._id === txId ? updatedTx : tx))
@@ -119,7 +120,10 @@ export default function AgentTransactionHistoryPage() {
       prevTxs.map((tx) => {
         if (tx._id === selectedTx._id) {
           const newCommissionPaid = (tx.commissionPaid || 0) + paidAmtNum;
-          const newCommissionDue = Math.max(0, (tx.commissionDue || 0) - paidAmtNum);
+          const newCommissionDue = Math.max(
+            0,
+            (tx.commissionDue || 0) - paidAmtNum
+          );
 
           let updatedStatus: 'due' | 'partial' | 'paid' = 'due';
           if (newCommissionDue === 0) {
@@ -137,7 +141,7 @@ export default function AgentTransactionHistoryPage() {
             status: updatedStatus,
             note: note || '',
             createdAt: new Date().toISOString(),
-            isLoading: true, // Flag to show loading state
+            isLoading: true // Flag to show loading state
           };
 
           return {
@@ -145,7 +149,7 @@ export default function AgentTransactionHistoryPage() {
             commissionPaid: newCommissionPaid,
             commissionDue: newCommissionDue,
             status: updatedStatus,
-            paymentLog: [...(tx.paymentLog || []), optimisticPaymentLogEntry],
+            paymentLog: [...(tx.paymentLog || []), optimisticPaymentLogEntry]
           };
         }
         return tx;
@@ -158,7 +162,7 @@ export default function AgentTransactionHistoryPage() {
       totalCommissionDue: Math.max(
         0,
         (prev?.totalCommissionDue || 0) - paidAmtNum
-      ),
+      )
     }));
 
     setIsDialogOpen(false);
@@ -168,22 +172,20 @@ export default function AgentTransactionHistoryPage() {
     try {
       await axiosInstance.patch(`/agent-transactions/${selectedTx._id}`, {
         paidAmount: paidAmtNum,
-        note,
+        note
       });
-      
+
       toast({ title: 'Payment completed successfully' });
-      
+
       // Show loading state for log and fetch updated transaction
       setLoadingLogTxId(selectedTx._id);
       await fetchSingleTransaction(selectedTx._id);
-      
     } catch (error: any) {
       console.error('Error making payment:', error);
       toast({
         title: error.response?.data?.message || 'Failed to complete payment',
-        variant: 'destructive',
+        variant: 'destructive'
       });
-      
     } finally {
       setLoadingTxId(null);
       setLoadingLogTxId(null);
@@ -238,7 +240,9 @@ export default function AgentTransactionHistoryPage() {
     <Card className="rounded-sm">
       <CardContent>
         <div className="flex flex-row items-center justify-between py-4">
-          <h1 className="text-2xl font-bold">Agent Commission History</h1>
+          <h1 className="text-2xl font-bold">
+            {agentInfo?.name || ''} Commission History
+          </h1>
           <Button
             className="border-none bg-theme text-white hover:bg-theme/90"
             size="sm"
@@ -257,9 +261,11 @@ export default function AgentTransactionHistoryPage() {
           <>
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-                <p className="text-sm font-medium text-slate-500">Agent Name</p>
+                <p className="text-sm font-medium text-slate-500">
+                  Investor Name
+                </p>
                 <p className="mt-1 truncate text-lg font-semibold text-gray-800">
-                  {agentInfo?.name || 'N/A'}
+                  {investorInfo?.name || 'Investor'}
                 </p>
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
@@ -306,24 +312,20 @@ export default function AgentTransactionHistoryPage() {
                 const due = tx?.commissionDue || 0;
                 const paid = tx?.commissionPaid || 0;
                 const status = tx?.status || 'due';
-
+                const profit = tx?.profit || 0;
                 return (
                   <Card
                     key={idx}
-                    className={`border border-gray-200 transition-shadow hover:shadow-md ${
-                      status === 'paid' ? 'bg-green-50' : ''
-                    }`}
+                    className={`border border-gray-200 transition-shadow hover:shadow-md`}
                   >
                     <CardHeader>
                       <CardTitle className="flex flex-wrap items-center justify-between gap-4 text-lg">
                         <span>{`${monthName} ${currentYear}`}</span>
-                        {loadingTxId === tx._id && (
-                          <span className="flex items-center gap-1 text-blue-500">
-                            <Loader2 className="animate-spin h-4 w-4" />
-                            Processing...
-                          </span>
-                        )}
+
                         <span className="font-semibold text-blue-500">
+                          Profit: £{profit.toFixed(2)}
+                        </span>
+                        <span className="font-semibold text-rose-500">
                           Due: £{due.toFixed(2)}
                         </span>
                         <span className="font-semibold text-green-600">
@@ -334,8 +336,8 @@ export default function AgentTransactionHistoryPage() {
                             status === 'paid'
                               ? 'bg-green-200 text-green-800'
                               : status === 'partial'
-                              ? 'bg-yellow-200 text-yellow-800'
-                              : 'bg-red-200 text-red-800'
+                                ? 'bg-yellow-200 text-yellow-800'
+                                : 'bg-red-200 text-red-800'
                           }`}
                         >
                           {status.toUpperCase()}
@@ -382,6 +384,12 @@ export default function AgentTransactionHistoryPage() {
                                       setPaidAmount(e.target.value)
                                     }
                                   />
+                                  {isOverPayment && (
+                                    <p className="mt-1 text-sm text-red-600">
+                                      Paid amount cannot exceed the commission
+                                      due (£{commissionDue.toFixed(2)})
+                                    </p>
+                                  )}
                                 </div>
                                 <div>
                                   <label className="mb-1 block text-sm font-medium">
@@ -400,7 +408,7 @@ export default function AgentTransactionHistoryPage() {
                                     Cancel
                                   </Button>
                                   <Button
-                                    disabled={!!loadingTxId}
+                                    disabled={!!loadingTxId || isOverPayment}
                                     className="bg-theme text-white hover:bg-theme/90"
                                     onClick={handlePaymentConfirm}
                                   >
@@ -419,11 +427,13 @@ export default function AgentTransactionHistoryPage() {
                     <CardContent>
                       {(tx.logs?.length > 0 || tx.paymentLog?.length > 0) && (
                         <div className="space-y-2">
-                          <h4 className="text-gray-700 font-medium">
+                          <h4 className="font-medium text-gray-700">
                             Transaction History:
                           </h4>
                           {[...(tx.logs || []), ...(tx.paymentLog || [])]
-                            .filter((log) => log.type !== 'commissionPaymentMade')
+                            .filter(
+                              (log) => log.type !== 'commissionPaymentMade'
+                            )
                             .sort(
                               (a, b) =>
                                 new Date(b.createdAt || b.timestamp).getTime() -
@@ -432,32 +442,34 @@ export default function AgentTransactionHistoryPage() {
                             .map((log, index) => (
                               <div
                                 key={index}
-                                className="flex flex-col sm:flex-row sm:justify-between gap-2 border border-gray-100 p-3 text-sm rounded-md"
+                                className="flex flex-col gap-2 rounded-md border border-gray-100 p-3 text-sm sm:flex-row sm:justify-between"
                               >
                                 <div className="flex flex-row items-center gap-4">
                                   <p className="font-medium text-black">
-                                   {moment(log.createdAt).format('D MMM YYYY')}
-
+                                    {moment(log.createdAt).format('D MMM YYYY')}
                                   </p>
-                                  
+
                                   {/* Show loading state or actual ID */}
-                                  {log.isLoading || (loadingLogTxId === tx._id && log._id === 'temp-loading') ? (
+                                  {log.isLoading ||
+                                  (loadingLogTxId === tx._id &&
+                                    log._id === 'temp-loading') ? (
                                     <div className="flex items-center gap-2">
-                                      <Loader2 className="animate-spin h-3 w-3" />
-                                      <span className="text-gray-500 text-xs">Generating ID...</span>
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                      <span className="text-xs text-gray-500">
+                                        Generating ID...
+                                      </span>
                                     </div>
                                   ) : (
-                                    <p className="text-black">
-                                      {log._id}
-                                    </p>
+                                    <p className="text-black">{log._id}</p>
                                   )}
-                                  
-                                  {log.transactionType === "commissionPayment" && (
+
+                                  {log.transactionType ===
+                                    'commissionPayment' && (
                                     <p className="text-sm text-green-600">
                                       Payment Initiated
                                     </p>
                                   )}
-                                  
+
                                   <p className="text-black">
                                     {log.message || log.note || ''}
                                   </p>

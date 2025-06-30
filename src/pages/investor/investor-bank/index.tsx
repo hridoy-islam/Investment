@@ -84,7 +84,7 @@ const{id} = useParams()
           <Button
             className="border-none bg-theme text-white hover:bg-theme/90"
             size={'sm'}
-            onClick={() => navigate('/dashboard/investors')}
+            onClick={() => navigate(-1)}
           >
             <MoveLeft className="mr-2 h-4 w-4" />
             Back
