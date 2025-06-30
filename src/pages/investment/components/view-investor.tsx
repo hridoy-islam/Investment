@@ -272,11 +272,8 @@ export default function ViewInvestorPage() {
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Raise Fund</DialogTitle>
-                          <DialogTitle>
-                            Investor Name:{' '}
-                            {participant.investorId?.name || 'N/A'}
-                          </DialogTitle>
+                          <DialogTitle>Raise Fund For  {participant.investorId?.name || 'N/A'}</DialogTitle>
+                          
                         </DialogHeader>
 
                         <form
