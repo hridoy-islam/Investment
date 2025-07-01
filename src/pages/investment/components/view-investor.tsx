@@ -67,6 +67,8 @@ export default function ViewInvestorPage() {
   const { id } = useParams(); // investmentId
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const fetchParticipants = async (page: number, limit: number) => {
     setLoading(true);
     try {
@@ -115,7 +117,7 @@ export default function ViewInvestorPage() {
     agentCommissionRate: number;
   }) => {
     setSubmitLoading(true);
-
+    setIsSubmitting(true);
     try {
       if (!selectedInvestor?.value) return;
 
@@ -272,14 +274,16 @@ export default function ViewInvestorPage() {
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Raise Fund For  {participant.investorId?.name || 'N/A'}</DialogTitle>
-                          
+                          <DialogTitle>
+                            Raise Fund For{' '}
+                            {participant.investorId?.name || 'N/A'}
+                          </DialogTitle>
                         </DialogHeader>
 
                         <form
                           onSubmit={async (e) => {
                             e.preventDefault();
-
+                            setIsSubmitting(true);
                             const form = e.currentTarget;
                             const formData = new FormData(form);
                             const amountToAdd = parseFloat(
@@ -293,6 +297,7 @@ export default function ViewInvestorPage() {
                                   'Please enter a valid amount greater than 0',
                                 variant: 'destructive'
                               });
+                              setIsSubmitting(false);
                               return;
                             }
 
@@ -330,6 +335,8 @@ export default function ViewInvestorPage() {
                                 variant: 'destructive'
                               });
                               setOpenDialogId(null);
+                            } finally {
+                              setIsSubmitting(false);
                             }
                           }}
                           className="space-y-4 pt-4"
@@ -354,6 +361,7 @@ export default function ViewInvestorPage() {
                             </DialogTrigger>
                             <Button
                               type="submit"
+                              disabled={isSubmitting} 
                               className="bg-theme text-white hover:bg-theme/90"
                             >
                               Submit

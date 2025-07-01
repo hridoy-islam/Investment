@@ -61,6 +61,7 @@ export default function InvestmentProjectPage() {
   const [selectedInvestment, setSelectedInvestment] = useState<string | null>(
     null
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [openDialogId, setOpenDialogId] = useState<string | null>(null);
@@ -209,11 +210,9 @@ export default function InvestmentProjectPage() {
       <CardContent>
         <div className="flex flex-row items-center justify-between">
           <div className="space-y-2 py-4">
-           
-              <p className="text-xl font-semibold">
-                Investor: {investor?.name} Project List
-              </p>
-          
+            <p className="text-xl font-semibold">
+              Investor: {investor?.name} Project List
+            </p>
           </div>
           <div className="flex flex-row items-center gap-4">
             <Button
@@ -513,11 +512,14 @@ export default function InvestmentProjectPage() {
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle>Raise Fund</DialogTitle>
-                          <DialogTitle>Investor Name: {investor?.name || ''}</DialogTitle>
+                          <DialogTitle>
+                            Investor Name: {investor?.name || ''}
+                          </DialogTitle>
                         </DialogHeader>
 
                         <form
                           onSubmit={async (e) => {
+                            setIsSubmitting(true);
                             e.preventDefault();
 
                             const form = e.currentTarget;
@@ -533,6 +535,7 @@ export default function InvestmentProjectPage() {
                                   'Please enter a valid amount greater than 0',
                                 variant: 'destructive'
                               });
+                              setIsSubmitting(false);
                               return;
                             }
 
@@ -560,7 +563,9 @@ export default function InvestmentProjectPage() {
                                   'Failed to add more capital',
                                 variant: 'destructive'
                               });
-                               setOpenDialogId(null);
+                              setOpenDialogId(null);
+                            } finally {
+                              setIsSubmitting(false);
                             }
                           }}
                           className="space-y-4 pt-4"
@@ -585,6 +590,7 @@ export default function InvestmentProjectPage() {
                             </DialogTrigger>
                             <Button
                               type="submit"
+                              disabled={isSubmitting}
                               className="bg-theme text-white hover:bg-theme/90"
                             >
                               Submit
