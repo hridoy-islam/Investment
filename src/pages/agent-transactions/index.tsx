@@ -123,7 +123,6 @@ export default function AgentTransactionPage() {
         {/* Header */}
         <div className="mb-2 flex flex-wrap items-center justify-between gap-4">
           <div>
-            
             <div className="flex flex-row items-start gap-4">
               <h1 className="text-2xl font-medium">Transaction History</h1>
               {/* Year Selector */}
@@ -232,43 +231,47 @@ export default function AgentTransactionPage() {
                               className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white px-4 py-1 shadow-sm sm:flex-row sm:items-center sm:justify-between"
                             >
                               <div className="flex flex-row gap-4 text-sm text-black">
-                                { log.transactionType === "commissionPayment" ? (
+                                {log.transactionType === 'commissionPayment' ? (
                                   <div className="flex flex-row gap-4">
                                     <p className="font-medium">
-
-                                    {moment(log?.createdAt).format(
-                                      'D MMM YYYY'
-                                    )}
+                                      {moment(log?.createdAt).format(
+                                        'D MMM YYYY'
+                                      )}
                                     </p>
                                     <span className="  text-black">
                                       {log._id}
                                     </span>
                                     {'  '}
-                                    <span className="font-semibold text-green-600">
-                                      <span className="font-semibold text-black">
+                                    <span className=" text-green-600">
+                                      <span className=" text-black">
                                         {/* {log.investorName} */}
                                       </span>{' '}
-                                            Payment Initiated 
+                                      Payment Initiated
                                     </span>
                                   </div>
-                                ) : log.type === "commissionCalculated" ? (
-  <div className="flex flex-row  gap-4 text-sm text-black">
-      <p className="font-medium">
-        {moment(log?.createdAt).format('D MMM YYYY')}
-      </p>
-      <span className="text-black">{log._id}</span>
-    <p className="text-black ">
-      Commission distributed for {log.metadata?.investorName}'s investment {log.metadata?.investmentName}
-    </p>
-  </div>
-)  : (
-                                  <>
-                                    <div className="flex flex-row items-center gap-4">
-                                      <p className='font-medium'>
-
+                                ) : log.type === 'commissionCalculated' ? (
+                                  <div className="flex flex-row  gap-4 text-sm text-black">
+                                    <p className="font-medium">
                                       {moment(log?.createdAt).format(
                                         'D MMM YYYY'
                                       )}
+                                    </p>
+                                    <span className="text-black">
+                                      {log._id}
+                                    </span>
+                                    <p className="text-black ">
+                                      Commission distributed for{' '}
+                                      {log.metadata?.investorName}'s investment{' '}
+                                      {log.metadata?.investmentName}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="flex flex-row items-center gap-4">
+                                      <p className="font-medium">
+                                        {moment(log?.createdAt).format(
+                                          'D MMM YYYY'
+                                        )}
                                       </p>
                                       <span className=" text-black">
                                         {log._id}

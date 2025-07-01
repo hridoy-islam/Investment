@@ -133,44 +133,57 @@ export default function InvestorTransactionPage() {
               No transaction logs found.
             </div>
           ) : (
-            <div className="min-h-[65vh] space-y-2 overflow-y-auto ">
-              {transactions.map((log, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col gap-1 rounded-md border border-gray-200 bg-gray-50 px-4  py-1 shadow-sm hover:bg-gray-100 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="flex flex-row items-center gap-8 text-sm text-gray-700">
-                    <p className="font-semibold">
-                      {new Date(log.createdAt).toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                    </p>
+           <div className="min-h-[65vh] space-y-2 overflow-y-auto">
+  {transactions.map((log, index) => (
+    <div
+      key={index}
+      className="flex flex-col gap-1 rounded-md border border-gray-200 bg-gray-50 px-4 py-1 shadow-sm hover:bg-gray-100 sm:flex-row sm:items-center sm:justify-between"
+    >
+      {/* Left side: Date, ID, Description */}
+      <div className="flex flex-row items-center gap-8 text-sm text-gray-700">
+        {/* Date */}
+        <p className="font-semibold">
+          {new Date(log.createdAt).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          })}
+        </p>
 
-                    <p className="font-medium">{log._id}</p>
+        {/* ID */}
+        <p className="font-medium">{log._id}</p>
 
-                    <p className="font-semibold">{log.investmentTitle}</p>
-                    {log.transactionType === 'profitPayment' ? (
-                      <div className=" text-black">
-                        Payment Initiated{log.note ? ` (${log.note})` : ''}
-                      </div>
-                    ) : log.note ? (
-                      <p className=" text-black">{log.note}</p>
-                    ) : log.message ? (
-                      <p className=" text-black">{log.message}</p>
-                    ) : null}
-                  </div>
-                  <div className="text-right font-semibold text-black">
-                    {log?.paidAmount ? (
-                      <>£{log.paidAmount}</>
-                    ) : log?.metadata?.amount ? (
-                      <>£{log.metadata.amount}</>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Description based on transactionType */}
+        {log.transactionType === 'closeProject' ? (
+          <p className=" text-black">
+            Project closed and fully paid
+            {log.metadata?.investorName && (
+              <> for {log.metadata.investorName}</>
+            )}
+          </p>
+        ) : log.transactionType === 'profitPayment' ? (
+          <p className="text-green-500">
+            Payment Initiated <span className='text-black'>{log.note ? ` ${log.note}` : ''}</span>
+          </p>
+        ) : log.note ? (
+          <p className="text-black">{log.note}</p>
+        ) : log.message ? (
+          <p className="text-black">{log.message}</p>
+        ) : null}
+      </div>
+
+      {/* Right side: Amount */}
+      <div className="text-right font-semibold text-black">
+        {log?.paidAmount ? (
+          <>£{log.paidAmount}</>
+        ) : log?.metadata?.amount ? (
+          <>£{log.metadata.amount}</>
+        ) : null}
+      </div>
+    </div>
+  ))}
+</div>
+
           )}
         </div>
       </CardContent>

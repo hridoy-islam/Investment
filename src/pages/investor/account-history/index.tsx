@@ -46,7 +46,7 @@ export default function InvestorAccountHistoryPage() {
   // Loading flags for payments & logs
   const [loadingTxId, setLoadingTxId] = useState<string | null>(null);
   const [loadingLogTxId, setLoadingLogTxId] = useState<string | null>(null);
-
+const [closingProject, setClosingProject] = useState(false);
   const increment = () => setCount((prev) => prev + 1);
 
   const generateYears = () => {
@@ -201,7 +201,7 @@ export default function InvestorAccountHistoryPage() {
 
   const handleCloseProjectConfirm = async () => {
     if (!data) return;
-
+setClosingProject(true);
     try {
       await axiosInstance.patch(`/investment-participants/${id}`, {
         totalDue: 0,
@@ -225,7 +225,9 @@ export default function InvestorAccountHistoryPage() {
         title: error.response?.data?.message || 'Failed to close project',
         variant: 'destructive'
       });
-    }
+    }finally {
+    setClosingProject(false); 
+  }
   };
 
   const allMonths = [
@@ -305,6 +307,7 @@ export default function InvestorAccountHistoryPage() {
                     <Button
                       className="bg-theme text-white hover:bg-theme/90"
                       onClick={handleCloseProjectConfirm}
+                       disabled={closingProject}
                     >
                       Confirm
                     </Button>
@@ -321,6 +324,17 @@ export default function InvestorAccountHistoryPage() {
               </Button>
             </div>
           )}
+   
+            <Button
+              variant="ghost"
+              size="sm"
+              className="bg-theme text-white hover:bg-theme/90"
+              onClick={() => navigate(-1)}
+            >
+              <MoveLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+      
         </div>
 
         {/* Loading or Content */}

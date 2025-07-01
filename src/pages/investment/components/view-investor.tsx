@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 interface InvestorParticipant {
   _id: string;
@@ -236,7 +237,15 @@ export default function ViewInvestorPage() {
               {participants.map((participant) => (
                 <TableRow key={participant._id}>
                   <TableCell className="font-medium">
-                    {participant.investorId?.name || 'N/A'}
+                    {participant.investorId?.name || 'N/A'}{' '}
+                    <Badge
+                      className={`rounded-full px-2 py-1 text-xs font-semibold 
+    ${participant.status === 'active' ? 'bg-green-100 text-green-700' : ''}
+    ${participant.status === 'block' ? 'bg-red-100 text-red-700' : ''}
+  `}
+                    >
+                      {participant.status === 'active' ? 'Active' : 'Close'}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {participant.investorId?.email || 'N/A'}
@@ -361,7 +370,7 @@ export default function ViewInvestorPage() {
                             </DialogTrigger>
                             <Button
                               type="submit"
-                              disabled={isSubmitting} 
+                              disabled={isSubmitting}
                               className="bg-theme text-white hover:bg-theme/90"
                             >
                               Submit

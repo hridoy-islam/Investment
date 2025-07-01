@@ -271,7 +271,9 @@ export default function AgentTransactionHistoryPage() {
               <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                 <p className="text-sm font-medium text-slate-500">Total Due</p>
                 <p className="mt-1 truncate text-lg font-semibold text-rose-500">
-                  £{agentCommission?.totalCommissionDue?.toFixed(2) || '0.00'}
+                  £{Math.abs(agentCommission?.totalCommissionDue || 0) < 0.005
+  ? '0.00'
+  : (agentCommission?.totalCommissionDue || 0).toFixed(2)}
                 </p>
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
@@ -465,7 +467,7 @@ export default function AgentTransactionHistoryPage() {
 
                                   {log.transactionType ===
                                     'commissionPayment' && (
-                                    <p className="text-sm text-green-600">
+                                    <p className="text-sm text-green-500">
                                       Payment Initiated
                                     </p>
                                   )}

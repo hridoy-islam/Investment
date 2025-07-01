@@ -229,7 +229,7 @@ export default function AgentAllTransactionPage() {
                                     <span className=" text-black">
                                       {log._id}
                                     </span>
-                                      <p>
+                                      <p className='text-green-500'>
                                         Payment Initiated for Investor{' '}
                                         {log.investorName}
                                       </p>

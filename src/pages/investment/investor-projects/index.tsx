@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pen, MoveLeft, Eye, Building2, ArrowLeftRightIcon } from 'lucide-react';
+import {
+  Plus,
+  Pen,
+  MoveLeft,
+  Eye,
+  Building2,
+  ArrowLeftRightIcon,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -14,6 +21,7 @@ import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { DataTablePagination } from '@/components/shared/data-table-pagination';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { Badge } from '@/components/ui/badge';
 
 export default function InvestorInvestmentPage() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -35,12 +43,19 @@ export default function InvestorInvestmentPage() {
     }
   };
 
-  const fetchProjects = async (page: number, limit: number, searchTerm = '') => {
+  const fetchProjects = async (
+    page: number,
+    limit: number,
+    searchTerm = ''
+  ) => {
     try {
       if (initialLoading) setInitialLoading(true);
-      const res = await axiosInstance.get(`/investment-participants?investorId=${user._id}`, {
-        params: { page, limit, ...(searchTerm ? { searchTerm } : {}) }
-      });
+      const res = await axiosInstance.get(
+        `/investment-participants?investorId=${user._id}`,
+        {
+          params: { page, limit, ...(searchTerm ? { searchTerm } : {}) }
+        }
+      );
       setProjects(res.data.data.result);
       setTotalPages(res.data.data.meta.totalPage);
     } catch (err) {
@@ -56,7 +71,7 @@ export default function InvestorInvestmentPage() {
   }, [currentPage, entriesPerPage]);
 
   const calculateRate = (amount: number, investmentId: string) => {
-    const investment = investments.find(inv => inv._id === investmentId);
+    const investment = investments.find((inv) => inv._id === investmentId);
     if (!investment || !investment.amountRequired) return 'N/A';
     const rate = (100 * amount) / investment.amountRequired;
     return `${rate.toFixed(2)}%`;
@@ -97,16 +112,30 @@ export default function InvestorInvestmentPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {projects.map(project => (
+              {projects.map((project) => (
                 <TableRow key={project?._id}>
-                  <TableCell>{project?.investmentId?.title}</TableCell>
+                  <TableCell className='flex items-center gap-2'>
+                    {project?.investmentId?.title}{' '}
+                     <Badge
+        className={`rounded-full px-2 py-1 text-xs font-semibold 
+          ${project.status === 'active' ? 'bg-green-100 text-green-700' : ''}
+          ${project.status === 'block' ? 'bg-red-100 text-red-700' : ''}
+        `}
+      >
+        {project.status === 'active' ? 'Active' : 'Close'}
+      </Badge>
+                  </TableCell>
                   <TableCell>£{project?.amount}</TableCell>
-                  <TableCell>{calculateRate(project?.amount, project?.investmentId?._id)}</TableCell>
+                  <TableCell>
+                    {calculateRate(project?.amount, project?.investmentId?._id)}
+                  </TableCell>
                   <TableCell className="text-center">
                     <Button
                       size="icon"
                       onClick={() =>
-                        navigate(`/dashboard/investor/projects/account-history/${project._id}`)
+                        navigate(
+                          `/dashboard/investor/projects/account-history/${project._id}`
+                        )
                       }
                       className="bg-indigo-500 text-white hover:bg-indigo-500/90"
                     >
@@ -119,7 +148,9 @@ export default function InvestorInvestmentPage() {
                       className="border-none bg-theme text-white hover:bg-theme/90"
                       size="icon"
                       onClick={() =>
-                        navigate(`/dashboard/investments/view/${project.investmentId?._id}`)
+                        navigate(
+                          `/dashboard/investments/view/${project.investmentId?._id}`
+                        )
                       }
                     >
                       <Eye className="h-4 w-4" />

@@ -245,7 +245,7 @@ export default function InvestmentTransactionPage() {
                                       {log._id}
                                     </span>
 
-                                    <div>
+                                    <div className='text-green-500'>
                                       Payment Initiated to{' '}
                                       <span className="">
                                         {log.investorName}
@@ -256,6 +256,21 @@ export default function InvestmentTransactionPage() {
                                         ({log.note})
                                       </span>
                                     )}
+                                  </div>
+                                ) : log.transactionType === 'investment' ? (
+                                  <div className="flex flex-row gap-8 text-sm">
+                                    <p className="font-medium">
+                                      {moment(log?.createdAt).format(
+                                        'D MMM YYYY'
+                                      )}
+                                    </p>
+                                    <span className="ml-4 text-black">
+                                      {log._id}
+                                    </span>
+                                    <p className="text-black">
+                                      Initial investment added {log.metadata?.investorName && <>by{' '}
+                                      {log.metadata?.investorName || 'investor'}</> } 
+                                    </p>
                                   </div>
                                 ) : (
                                   <>
