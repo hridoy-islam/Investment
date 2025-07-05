@@ -324,8 +324,7 @@ setClosingProject(true);
               </Button>
             </div>
           )}
-   
-            <Button
+   {user.role !== 'admin' && ( <Button
               variant="ghost"
               size="sm"
               className="bg-theme text-white hover:bg-theme/90"
@@ -333,7 +332,8 @@ setClosingProject(true);
             >
               <MoveLeft className="mr-2 h-4 w-4" />
               Back
-            </Button>
+            </Button>)}
+           
       
         </div>
 
