@@ -44,21 +44,28 @@ export function AgentDialog({ open, onOpenChange, onSubmit, initialData }) {
     }
   });
 
-  useEffect(() => {
-    if (initialData) {
-      reset({
-        name: initialData.name || '',
-        email: initialData.email || '',
-        password: '', // don't prefill password
-        dateOfBirth: initialData.dateOfBirth
-          ? moment(initialData.dateOfBirth).format('YYYY-MM-DD')
-          : '',
-        address: initialData.address || ''
-      });
-    } else {
-      reset(); // clear form for new agent
-    }
-  }, [initialData, reset]);
+useEffect(() => {
+  if (initialData) {
+    reset({
+      name: initialData.name || '',
+      email: initialData.email || '',
+      password: '',
+      dateOfBirth: initialData.dateOfBirth
+        ? moment(initialData.dateOfBirth).format('YYYY-MM-DD')
+        : '',
+      address: initialData.address || ''
+    });
+  } else {
+    // Add Mode — reset to default empty values
+    reset({
+      name: '',
+      email: '',
+      password: '',
+      dateOfBirth: '',
+      address: ''
+    });
+  }
+}, [initialData, reset]);
 
   const onFormSubmit = (data) => {
     onSubmit(data);

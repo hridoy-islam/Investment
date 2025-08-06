@@ -150,7 +150,8 @@ export default function InvestmentPage() {
       const response = await axiosInstance.patch(
         `/investments/${selectedInvestmentId}`,
         {
-          amountRequired: raiseAmount
+          amountRequired: raiseAmount,
+          isCapitalRaise: true
         }
       );
       increment();

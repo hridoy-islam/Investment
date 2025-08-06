@@ -78,6 +78,7 @@ export function InvestorDialog({ open, onOpenChange, onSubmit, initialData }) {
 
 useEffect(() => {
   if (initialData && agents.length > 0) {
+    // Edit Mode: populate form with existing agent's data
     const defaultValues = {
       name: initialData.name || '',
       email: initialData.email || '',
@@ -89,10 +90,17 @@ useEffect(() => {
       agent: initialData.agent?._id || ''
     };
 
-    console.log('Default Values:', defaultValues); // Debug log
     reset(defaultValues);
   } else if (!initialData) {
-    reset();
+    // Add Mode: reset to blank values explicitly
+    reset({
+      name: '',
+      email: '',
+      password: '',
+      dateOfBirth: '',
+      address: '',
+      agent: ''
+    });
   }
 }, [initialData, agents, reset]);
 
