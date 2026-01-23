@@ -29,7 +29,6 @@ import EditInvestorBankPage from '@/pages/investor/investor-bank/components/edit
 import OfferPage from '@/pages/offer';
 import InvestorAccountHistoryPage from '@/pages/investor/account-history';
 import AMLPage from '@/pages/aml';
-import MonthLog from '@/pages/investor/account-history/components/month-log';
 import InvestmentTransactionPage from '@/pages/investment/view-transactions';
 import InvestorTransactionPage from '@/pages/investor/investor-transaction';
 import SaleLogTransactionPage from '@/pages/investment/view-saleLog';

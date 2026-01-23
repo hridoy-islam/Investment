@@ -227,7 +227,11 @@ export default function InvestmentPage() {
       setSalePriceLoading(false);
     }
   };
-
+const calculateDueAmount = (inv) => {
+    const required = inv.amountRequired || 0;
+    const investment = inv.investmentAmount || 0;
+    return investment - required;
+  };
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -286,6 +290,7 @@ export default function InvestmentPage() {
                 <TableHead className="w-[30vw]">Project Name</TableHead>
                 <TableHead>Investment Amount</TableHead>
                 <TableHead>Admin Cost</TableHead>
+                <TableHead>Due Amount</TableHead>
                 <TableHead className="text-center">Sale/CMV</TableHead>
                 <TableHead className="text-center">Raise Capital</TableHead>
                 
@@ -297,7 +302,10 @@ export default function InvestmentPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {investments.map((investment) => (
+              {investments.map((investment) => { 
+                const due = calculateDueAmount(investment);
+
+                return(
                 <TableRow key={investment._id}>
                   <TableCell>{investment.title}</TableCell>
                   <TableCell>
@@ -306,6 +314,9 @@ export default function InvestmentPage() {
                   <TableCell>
                     {`${investment?.adminCost?.toFixed(2)}%` || '-'}
                   </TableCell>
+                  <TableCell>
+                      {due.toFixed(2)}
+                    </TableCell>
                   <TableCell className="text-center">
                     <Button
                       size="icon"
@@ -396,7 +407,7 @@ export default function InvestmentPage() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
         )}

@@ -38,15 +38,6 @@ export default function InvestmentTransactionPage() {
     'December'
   ];
 
-  const getOrderedMonths = () => {
-    const now = new Date();
-    const currentMonthIndex = now.getMonth();
-    return [
-      ...allMonths.slice(currentMonthIndex),
-      ...allMonths.slice(0, currentMonthIndex)
-    ];
-  };
-
   const generateYears = () => {
     const years = [];
     const startYear = currentYear - 50;
@@ -61,7 +52,9 @@ export default function InvestmentTransactionPage() {
         params: { investmentId: id }
       });
       const allTx = res.data?.data?.result || [];
-      const filtered = allTx.filter((tx) => tx.month?.startsWith(currentYear));
+      const filtered = allTx.filter((tx: any) =>
+        tx.month?.startsWith(currentYear)
+      );
       setTransactions(filtered);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
@@ -73,19 +66,6 @@ export default function InvestmentTransactionPage() {
   useEffect(() => {
     if (id) fetchData();
   }, [id, currentYear]);
-
-  const investorProfitsMap = transactions.reduce(
-    (acc, tx) => {
-      const investorId = tx.investorId?._id;
-      if (!investorId) return acc;
-      if (!acc[investorId]) {
-        acc[investorId] = { name: tx.investorId.name, totalProfit: 0 };
-      }
-      acc[investorId].totalProfit += tx.profit || 0;
-      return acc;
-    },
-    {} as Record<string, { name: string; totalProfit: number }>
-  );
 
   const getMonthWiseTransactions = () => {
     const monthMap: Record<string, any[]> = {};
@@ -101,21 +81,41 @@ export default function InvestmentTransactionPage() {
     const now = new Date();
     const currentMonthIndex = now.getMonth();
 
-    // Create ordered months starting from current month (like your getOrderedMonths)
     const orderedMonths = [
       ...allMonths.slice(currentMonthIndex),
       ...allMonths.slice(0, currentMonthIndex)
     ];
 
-    // Filter months that have transactions
     return orderedMonths.filter((monthName) => {
-      const monthNumber = allMonths.indexOf(monthName) + 1; // 1-based month number
+      const monthNumber = allMonths.indexOf(monthName) + 1;
       const monthKey = `${currentYear}-${String(monthNumber).padStart(2, '0')}`;
       return monthWiseMap[monthKey] && monthWiseMap[monthKey].length > 0;
     });
   };
 
   const monthWiseMap = getMonthWiseTransactions();
+
+  // Helper to format camelCase to Title Case (e.g. adminCostDeclared -> Admin Cost Declared)
+  const formatTransactionType = (type: string) => {
+    if (!type) return 'Transaction';
+    // Specific overrides for cleaner UI
+    const map: Record<string, string> = {
+      saleDeclared: 'Sale Declared',
+      grossProfit: 'Gross Profit',
+      adminCostDeclared: 'Admin Cost',
+      netProfit: 'Net Profit',
+      profitDistributed: 'Profit Distributed',
+      commissionCalculated: 'Agent Commission',
+      investmentUpdated: 'Project Update',
+      profitPayment: 'Payout',
+      investment: 'Investment'
+    };
+
+    if (map[type]) return map[type];
+
+    // Fallback: Split camelCase
+    return type.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
+  };
 
   return (
     <Card className="rounded-md border-none bg-white shadow-sm">
@@ -129,7 +129,7 @@ export default function InvestmentTransactionPage() {
             <div className="flex flex-row items-center gap-4">
               <h1 className="text-2xl font-medium">Transaction History</h1>
               {/* Year Selector */}
-              <div className=" flex items-center gap-3">
+              <div className="flex items-center gap-3">
                 <label htmlFor="year-select" className="text-sm font-medium">
                   Select Year:
                 </label>
@@ -170,7 +170,7 @@ export default function InvestmentTransactionPage() {
                 No transaction data found for {currentYear}.
               </p>
             ) : (
-              <div className="grid grid-cols-1 gap-5">
+              <div className="grid grid-cols-1 gap-8">
                 {getFilteredOrderedMonths().map((monthName, idx) => {
                   const monthNumber = allMonths.indexOf(monthName) + 1;
                   const monthKey = `${currentYear}-${String(monthNumber).padStart(2, '0')}`;
@@ -178,7 +178,7 @@ export default function InvestmentTransactionPage() {
 
                   const allLogs: Array<any> = [];
 
-                  // Add payment logs
+                  // Process logs
                   monthTransactions.forEach((tx) => {
                     if (tx.paymentLog && tx.paymentLog.length > 0) {
                       tx.paymentLog.forEach((log: any) => {
@@ -186,12 +186,12 @@ export default function InvestmentTransactionPage() {
                           ...log,
                           investorName: tx.investorId?.name,
                           createdAt: log.createdAt || tx.createdAt,
-                          isPaymentLog: true
+                          isPaymentLog: true,
+                          transactionType: 'profitPayment' // Explicit type for payments
                         });
                       });
                     }
 
-                    // Add transaction logs
                     if (tx.logs && tx.logs.length > 0) {
                       tx.logs.forEach((log: any) => {
                         allLogs.push({
@@ -204,7 +204,6 @@ export default function InvestmentTransactionPage() {
                     }
                   });
 
-                  // Sort all logs by date descending
                   allLogs.sort(
                     (a, b) =>
                       new Date(b.createdAt).getTime() -
@@ -214,92 +213,99 @@ export default function InvestmentTransactionPage() {
                   return (
                     <Card
                       key={idx}
-                      className="rounded-md border border-gray-200 shadow-sm"
+                      className="overflow-hidden rounded-md border border-gray-200 shadow-sm"
                     >
-                      <CardHeader>
+                      <CardHeader className=" pb-4">
                         <CardTitle className="text-lg font-semibold">
                           {monthName} {currentYear}
                         </CardTitle>
                       </CardHeader>
 
-                      <div className=" -mt-2  space-y-2 px-4 pb-4">
+                      <div className="p-0">
                         {allLogs.length === 0 ? (
-                          <p className="text-center text-lg text-black">
+                          <p className="py-4 text-center text-gray-500">
                             No logs found.
                           </p>
                         ) : (
-                          allLogs.map((log, index) => (
-                            <div
-                              key={index}
-                              className="flex  flex-col gap-16 rounded-md border border-gray-200 bg-white px-4 py-1 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-                            >
-                              <div className="flex  flex-row gap-4 text-lg text-black">
-                                {log.transactionType === 'profitPayment' ? (
-                                  <div className="flex flex-row gap-8 text-sm">
-                                    <p className="font-medium">
-                                      {moment(log?.createdAt).format(
-                                        'D MMM YYYY'
-                                      )}
-                                    </p>
-                                    <span className="ml-4  text-black">
-                                      {log._id}
-                                    </span>
+                          <div className="w-full">
+                            {/* Table-like Header */}
+                            <div className="grid grid-cols-12 gap-4 border-b  px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                              <div className="col-span-2">Date</div>
+                              <div className="col-span-3">Transaction ID</div>
+                              {/* <div className="col-span-2 text-right">Title</div> */}
+                              <div className="col-span-3">Details</div>
+                              <div className="col-span-2 text-right">Amount</div>
+                            </div>
 
-                                    <div className='text-green-500'>
-                                      Payment Initiated to{' '}
-                                      <span className="">
-                                        {log.investorName}
-                                      </span>
+                            {/* Table-like Body */}
+                            <div className="divide-y divide-gray-100">
+                              {allLogs.map((log, index) => {
+                                
+                                // 1. Determine Title (Category/Type)
+                                const titleText = formatTransactionType(log.transactionType || log.type);
+
+                                // 2. Determine Details (Description/Message)
+                                let detailsText = log.message || log.note || '-';
+                                
+                                // Special case adjustments for clearer details
+                                if (log.transactionType === 'profitPayment') {
+                                   detailsText = ` ${log.note ? `${log.note}` : ''}`;
+                                } else if (log.transactionType === 'investment') {
+                                   detailsText = log.metadata?.investorName
+                                    ? `Investment from ${log.metadata.investorName}`
+                                    : 'Initial Investment Added';
+                                }
+
+                                const amount =
+                                  log.paidAmount > 0
+                                    ? log.paidAmount
+                                    : log.metadata?.amount > 0
+                                    ? log.metadata.amount
+                                    : 0;
+
+                                return (
+                                  <div
+                                    key={index}
+                                    className="grid grid-cols-12 gap-4 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/50 items-center"
+                                  >
+                                    {/* Date */}
+                                    <div className="col-span-2 flex items-center font-medium text-gray-900">
+                                      {moment(log.createdAt).format('D MMM YYYY')}
                                     </div>
-                                    {log?.note && (
-                                      <span className="text-black">
-                                        ({log.note})
-                                      </span>
-                                    )}
-                                  </div>
-                                ) : log.transactionType === 'investment' ? (
-                                  <div className="flex flex-row gap-8 text-sm">
-                                    <p className="font-medium">
-                                      {moment(log?.createdAt).format(
-                                        'D MMM YYYY'
-                                      )}
-                                    </p>
-                                    <span className="ml-4 text-black">
-                                      {log._id}
-                                    </span>
-                                    <p className="text-black">
-                                      Initial investment added {log.metadata?.investorName && <>by{' '}
-                                      {log.metadata?.investorName || 'investor'}</> } 
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <div className="flex flex-row gap-8 text-sm">
-                                      <p className="font-medium">
-                                        {moment(log?.createdAt).format(
-                                          'D MMM YYYY'
-                                        )}
-                                      </p>
-                                      <span className="ml-4   text-black">
+
+                                    {/* Transaction ID */}
+                                    <div className="col-span-3 flex items-center">
+                                      <span
+                                        className=" font-mono text-xs"
+                                        title={log._id}
+                                      >
                                         {log._id}
                                       </span>
-                                      <p className="text-black">
-                                        {log?.message || log.note || ''}
-                                      </p>
                                     </div>
-                                  </>
-                                )}
-                              </div>
 
-                              <div className="text-right font-semibold text-black">
-                                {log?.paidAmount > 0
-                                  ? `£${log.paidAmount}`
-                                  : log?.metadata?.amount > 0
-                                    ? `£${log?.metadata.amount}`
-                                    : ''}
-                              </div>
+                                    {/* Title (Type) */}
+                                    {/* <div className="col-span-2 flex items-center justify-end font-semibold text-blue-700">
+                                      <span className="truncate" title={titleText}>
+                                        {titleText}
+                                      </span>
+                                    </div> */}
+
+                                    {/* Details (Message) */}
+                                    <div className="col-span-3 flex items-center ">
+                                      <span className="" title={detailsText}>
+                                        {detailsText}
+                                      </span>
+                                    </div>
+
+                                    {/* Amount */}
+                                    <div className="col-span-2 flex items-center justify-end font-medium \">
+                                      {amount > 0 ? `£${amount.toFixed(2)}` : '-'}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
-                          ))
+                          </div>
                         )}
                       </div>
                     </Card>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-this-alias */
 import { useState, useMemo } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -35,6 +36,8 @@ import {
   TrendingUp,
   ArrowLeft,
   Save,
+  Calculator,
+  PoundSterling,
 
 } from 'lucide-react';
 import { z } from 'zod';
@@ -44,18 +47,28 @@ import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from "@/lib/axios"
 
-// Form validation schema matching exact model
+// UPDATE: Added invalid_type_error to handle 'NaN' from empty number inputs
 const investmentSchema = z.object({
   title: z
     .string()
     .min(1, 'Project title is required')
     .max(100, 'Title must be less than 100 characters'),
   amountRequired: z
-    .number()
+    .number({ 
+      invalid_type_error: 'Amount is required' // Custom error for empty input
+    })
     .positive('Amount must be greater than 0'),
-    
-
-  adminCost: z.number().optional()
+  investmentAmount: z
+    .number({ 
+      invalid_type_error: 'Investment amount is required' // Custom error for empty input
+    })
+    .min(0, 'Investment amount cannot be negative')
+    .default(0),
+  // Use preprocess to handle empty/NaN for optional adminCost without error
+  adminCost: z.preprocess(
+    (val) => (Number.isNaN(val) ? 0 : val), 
+    z.number().optional()
+  )
 });
 
 type InvestmentFormData = z.infer<typeof investmentSchema>;
@@ -96,12 +109,14 @@ export default function App() {
     defaultValues: {
       title: '',
       amountRequired: 0,
-
+      investmentAmount: 0,
       adminCost: 0
     }
   });
 
   const watchedValues = watch();
+
+  const dueAmount = (watchedValues.investmentAmount || 0) - (watchedValues.amountRequired || 0);
 
   // React Quill modules configuration
   const quillModules = useMemo(
@@ -219,17 +234,16 @@ export default function App() {
     }
 
     try {
-      // Prepare form data matching exact model schema
       const formData = {
         title: data.title,
-        image: featuredImage, // This would be the actual image URL after upload
+        image: featuredImage, 
         details: details,
         amountRequired: data.amountRequired,
-
+        investmentAmount: data.investmentAmount,
         adminCost: data.adminCost || 0,
         documents: documents.map((doc) => ({
           title: doc.title,
-          file: doc.file // This would be processed for actual upload
+          file: doc.file 
         }))
       };
 
@@ -263,15 +277,12 @@ export default function App() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
-
-
-
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+    minimumFractionDigits: 0
+  }).format(amount);
+};
   const navigate = useNavigate()
 
   return (
@@ -493,7 +504,7 @@ export default function App() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-green-600" />
+                    <PoundSterling className="h-5 w-5 text-green-600" />
                     Financial Information
                   </CardTitle>
                   <CardDescription>
@@ -502,10 +513,12 @@ export default function App() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    
+                    {/* Amount Required */}
                     <div className="space-y-2">
                       <Label htmlFor="amountRequired">Amount Required *</Label>
                       <div className="relative">
-                        <DollarSign className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <PoundSterling className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                         <Input
                           id="amountRequired"
                           type="number"
@@ -523,6 +536,7 @@ export default function App() {
                       )}
                     </div>
 
+                    {/* Admin Cost */}
                     <div className="space-y-2">
                       <Label htmlFor="adminCost">Admin Cost %</Label>
                       <div className="relative">
@@ -535,6 +549,42 @@ export default function App() {
                         />
                       </div>
                     </div>
+
+                    {/* Investment Amount Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="investmentAmount">Investment Amount</Label>
+                      <div className="relative">
+                        <PoundSterling className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="investmentAmount"
+                          type="number"
+                          {...register('investmentAmount', { valueAsNumber: true })}
+                          placeholder="0"
+                          className={`pl-10 ${errors.investmentAmount ? 'border-red-500' : ''}`}
+                        />
+                      </div>
+                      {errors.investmentAmount && (
+                        <p className="text-sm text-red-500">
+                          {errors.investmentAmount.message}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Dynamic Due Amount Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="dueAmount">Due Amount (Calculated)</Label>
+                      <div className="relative">
+                        <Calculator className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="dueAmount"
+                          type="text"
+                          value={formatCurrency(dueAmount)}
+                          disabled
+                          className="pl-10 bg-slate-50 font-semibold text-slate-700"
+                        />
+                      </div>
+                    </div>
+
                   </div>
 
                   
@@ -612,7 +662,7 @@ export default function App() {
                       <span className="font-medium">
                         {watchedValues.amountRequired
                           ? formatCurrency(watchedValues.amountRequired)
-                          : '$0'}
+                          : '£0'}
                       </span>
                     </div>
 
@@ -624,7 +674,24 @@ export default function App() {
                           : '%0'}
                       </span>
                     </div>
+
                     <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Investment Amount:</span>
+                      <span className="font-medium text-blue-600">
+                        {watchedValues.investmentAmount
+                          ? formatCurrency(watchedValues.investmentAmount)
+                          : '£0'}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-sm border-t pt-2">
+                      <span className="text-slate-600 font-semibold">Due Amount:</span>
+                      <span className="font-bold text-green-600">
+                        {formatCurrency(dueAmount)}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-sm pt-2">
                       <span className="text-slate-600">Documents:</span>
                       <span className="font-medium">{documents.length}</span>
                     </div>
@@ -635,7 +702,7 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-                 
+                  
                 </CardContent>
               </Card>
             </div>

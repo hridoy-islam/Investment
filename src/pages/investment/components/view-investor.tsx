@@ -260,8 +260,8 @@ export default function ViewInvestorPage() {
                       : '—'}
                   </TableCell>
                   <TableCell>
-                    {participant?.amount && project?.amountRequired
-                      ? `${((participant.amount * 100) / project.amountRequired).toFixed(2)}%`
+                    {participant?.projectShare != null
+                      ? `${participant.projectShare.toFixed(2)}%`
                       : '—'}
                   </TableCell>
 
@@ -311,12 +311,13 @@ export default function ViewInvestorPage() {
                             }
 
                             try {
-                              await axiosInstance.patch(
+                              const res = await axiosInstance.patch(
                                 `/investment-participants/${participant._id}`,
                                 {
                                   amount: amountToAdd
                                 }
                               );
+                              const updatedParticipant = res.data.data;
 
                               toast({
                                 title: 'Success',
@@ -331,7 +332,9 @@ export default function ViewInvestorPage() {
                                   p._id === participant._id
                                     ? {
                                         ...p,
-                                        amount: (p.amount || 0) + amountToAdd
+                                        amount: updatedParticipant.amount,
+                                        projectShare:
+                                          updatedParticipant.projectShare
                                       }
                                     : p
                                 )

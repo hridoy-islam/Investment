@@ -1,4 +1,4 @@
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect, useMemo } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -34,6 +34,8 @@ import {
   ArrowLeft,
   Save,
   Plus,
+  Calculator,
+  PoundSterling
 } from 'lucide-react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -43,14 +45,28 @@ import { useToast } from '@/components/ui/use-toast';
 import axiosInstance from '@/lib/axios';
 import { useNavigate, useParams } from 'react-router-dom';
 
-// Schema must match backend model
+// 1. UPDATE: Updated Schema to match Create Page
 const investmentSchema = z.object({
   title: z
     .string()
     .min(1, 'Project title is required')
     .max(100, 'Title must be less than 100 characters'),
-  amountRequired: z.number().positive('Amount must be greater than 0'),
-  adminCost: z.number().optional(),
+  amountRequired: z
+    .number({
+      invalid_type_error: 'Amount is required'
+    })
+    .positive('Amount must be greater than 0'),
+  investmentAmount: z
+    .number({
+      invalid_type_error: 'Investment amount is required'
+    })
+    .min(0, 'Investment amount cannot be negative')
+    .default(0),
+  // Handle optional/NaN for adminCost
+  adminCost: z.preprocess(
+    (val) => (Number.isNaN(val) ? 0 : val),
+    z.number().optional()
+  )
 });
 
 type InvestmentFormData = z.infer<typeof investmentSchema>;
@@ -65,17 +81,18 @@ interface Document {
 interface InvestmentData {
   title: string;
   details: string;
-  image?: string; // URL of current image
+  image?: string;
   amountRequired: number;
+  investmentAmount?: number; // Added field
   adminCost?: number;
   documents?: Array<{
     title: string;
-    file?: string; // URL or filename
+    file?: string;
   }>;
 }
 
 export default function EditInvestment() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [investment, setInvestment] = useState<InvestmentData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,11 +120,15 @@ export default function EditInvestment() {
     defaultValues: {
       title: '',
       amountRequired: 0,
+      investmentAmount: 0,
       adminCost: 0
     }
   });
 
   const watchedValues = watch();
+
+  // 2. UPDATE: Dynamic Due Amount Calculation
+  const dueAmount = (watchedValues.investmentAmount || 0) - (watchedValues.amountRequired || 0);
 
   const quillModules = useMemo(
     () => ({
@@ -138,12 +159,21 @@ export default function EditInvestment() {
         const response = await axiosInstance.get(`/investments/${id}`);
         const data: InvestmentData = response.data.data;
         setInvestment(data);
+
+        // 3. UPDATE: Reset form with investmentAmount
         reset({
           title: data.title || '',
           amountRequired: data.amountRequired || 0,
+          investmentAmount: data.investmentAmount || 0,
           adminCost: data.adminCost || 0
         });
+
         setDetails(data.details || '');
+
+        if (data.image) {
+          setImagePreview(data.image);
+        }
+
         if (data.documents) {
           const formattedDocs = data.documents.map((doc, index) => ({
             id: `existing-${index}`,
@@ -164,7 +194,7 @@ export default function EditInvestment() {
     };
 
     fetchInvestment();
-  }, [id, reset, toast]);
+  }, [id, reset, toast, navigate]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -247,13 +277,16 @@ export default function EditInvestment() {
     }
 
     setIsSubmitting(true);
-   
+
     try {
+      // 4. UPDATE: Include investmentAmount and saleAmount in payload
       const formData = {
+         action: "updateDetail",
         title: data.title,
         details,
-        image: featuredImage || null,
-        amountRequired: data.amountRequired,
+        image: featuredImage || investment?.image || null,
+        // amountRequired: data.amountRequired,
+        investmentAmount: data.investmentAmount,
         adminCost: data.adminCost || 0,
         documents: documents.map((doc) => ({
           title: doc.title,
@@ -268,7 +301,7 @@ export default function EditInvestment() {
         description: 'Investment updated successfully'
       });
 
-    navigate('/dashboard/investments');
+      navigate('/dashboard/investments');
     } catch (error) {
       toast({
         title: 'Submission failed',
@@ -281,10 +314,11 @@ export default function EditInvestment() {
     }
   };
 
+  // 5. UPDATE: Use GBP formatting to match Create page
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'GBP',
       minimumFractionDigits: 0
     }).format(amount);
   };
@@ -359,7 +393,7 @@ export default function EditInvestment() {
                   </div>
                 </CardContent>
               </Card>
-             
+
               {/* Supporting Documents */}
               <Card>
                 <CardHeader>
@@ -496,10 +530,10 @@ export default function EditInvestment() {
                 </CardContent>
               </Card>
             </div>
+
             {/* Sidebar */}
             <div className="space-y-6">
-
-               {/* Financial Information */}
+              {/* Financial Information */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -512,13 +546,16 @@ export default function EditInvestment() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    
+                    {/* Amount Required */}
                     <div className="space-y-2">
                       <Label htmlFor="amountRequired">Amount Required *</Label>
                       <div className="relative">
-                        <DollarSign className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <PoundSterling className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                         <Input
                           id="amountRequired"
                           type="number"
+                           disabled
                           {...register('amountRequired', {
                             valueAsNumber: true
                           })}
@@ -534,6 +571,8 @@ export default function EditInvestment() {
                         </p>
                       )}
                     </div>
+
+                    {/* Admin Cost */}
                     <div className="space-y-2">
                       <Label htmlFor="adminCost">Admin Cost %</Label>
                       <div className="relative">
@@ -546,12 +585,47 @@ export default function EditInvestment() {
                         />
                       </div>
                     </div>
+
+                    {/* 6. UPDATE: Investment Amount Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="investmentAmount">Investment Amount</Label>
+                      <div className="relative">
+                        <PoundSterling className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="investmentAmount"
+                          type="number"
+                          {...register('investmentAmount', { valueAsNumber: true })}
+                          placeholder="0"
+                          className={`pl-10 ${errors.investmentAmount ? 'border-red-500' : ''}`}
+                        />
+                      </div>
+                      {errors.investmentAmount && (
+                        <p className="text-sm text-red-500">
+                          {errors.investmentAmount.message}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 7. UPDATE: Dynamic Due Amount Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="dueAmount">Due Amount (Calculated)</Label>
+                      <div className="relative">
+                        <Calculator className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="dueAmount"
+                          type="text"
+                          value={formatCurrency(dueAmount)}
+                          disabled
+                          className="pl-10 bg-slate-50 font-semibold text-slate-700"
+                        />
+                      </div>
+                    </div>
+
                   </div>
                 </CardContent>
               </Card>
-             
-          
-               {/* Featured Image */}
+
+              {/* Featured Image */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -600,7 +674,7 @@ export default function EditInvestment() {
                               className="h-48 w-full rounded-lg object-cover"
                             />
                             <p className="mt-2 text-center text-xs text-gray-500">
-                              Current Image
+                              Current Image (Click to Change)
                             </p>
                           </div>
                         ) : (
@@ -620,7 +694,7 @@ export default function EditInvestment() {
                 </CardContent>
               </Card>
 
-                  {/* Project Summary */}
+              {/* 8. UPDATE: Project Summary */}
               <Card>
                 <CardHeader>
                   <CardTitle>Project Summary</CardTitle>
@@ -632,7 +706,7 @@ export default function EditInvestment() {
                       <span className="font-medium">
                         {watchedValues.amountRequired
                           ? formatCurrency(watchedValues.amountRequired)
-                          : '$0'}
+                          : '£0'}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -643,7 +717,26 @@ export default function EditInvestment() {
                           : '%0'}
                       </span>
                     </div>
+
+                    {/* Added Investment Amount Row */}
                     <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Investment Amount:</span>
+                      <span className="font-medium text-blue-600">
+                        {watchedValues.investmentAmount
+                          ? formatCurrency(watchedValues.investmentAmount)
+                          : '£0'}
+                      </span>
+                    </div>
+
+                    {/* Added Due Amount Row */}
+                    <div className="flex justify-between text-sm border-t pt-2">
+                      <span className="text-slate-600 font-semibold">Due Amount:</span>
+                      <span className="font-bold text-green-600">
+                        {formatCurrency(dueAmount)}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-sm pt-2">
                       <span className="text-slate-600">Documents:</span>
                       <span className="font-medium">{documents.length}</span>
                     </div>
@@ -660,7 +753,7 @@ export default function EditInvestment() {
               </Card>
             </div>
           </div>
-         
+
           {/* Action Buttons */}
           <div className="flex justify-end">
             <Button
