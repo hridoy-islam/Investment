@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import {
   ArrowLeftRight,
   Eye,
-  FolderClock,
   MoveLeft,
   Pen,
   Plus,
@@ -82,6 +81,25 @@ export default function InvestmentProjectPage() {
     }
   });
 
+  // Updated formatCurrency to handle dynamic currency types from API
+  const formatCurrency = (
+    amount: number,
+    currency: string | null | undefined = 'GBP'
+  ) => {
+    const validCurrency = currency || 'GBP';
+    try {
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: validCurrency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    } catch (error) {
+      // Fallback if currency code is invalid
+      return `${validCurrency} ${Number(amount).toFixed(2)}`;
+    }
+  };
+
   // Fetch data for current page
   const fetchData = async (pageNumber = 1, limit = 10, searchTerm = '') => {
     try {
@@ -129,7 +147,7 @@ export default function InvestmentProjectPage() {
       );
 
       setAllInvestments(available);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title:
           error?.response?.data?.message ||
@@ -190,6 +208,7 @@ export default function InvestmentProjectPage() {
       });
 
       setIsDialogOpen(false);
+      fetchData(currentPage, entriesPerPage);
     } catch (error: any) {
       toast({
         title:
@@ -270,7 +289,7 @@ export default function InvestmentProjectPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="amount">Investment Amount (£)</Label>
+                      <Label htmlFor="amount">Investment Amount</Label>
                       <Input
                         id="amount"
                         type="number"
@@ -365,7 +384,7 @@ export default function InvestmentProjectPage() {
                       )
                     }
                   >
-                    {project?.investmentId?.title}
+                    {project?.investmentId?.title || 'Unknown Project'}
                   </TableCell>
                   <TableCell
                     onClick={() =>
@@ -374,7 +393,10 @@ export default function InvestmentProjectPage() {
                       )
                     }
                   >
-                    £{project?.amount}
+                    {formatCurrency(
+                      project?.amount,
+                      project?.investmentId?.currencyType
+                    )}
                   </TableCell>
                   <TableCell
                     onClick={() =>
@@ -383,9 +405,7 @@ export default function InvestmentProjectPage() {
                       )
                     }
                   >
-                    {project?.investmentId?.amountRequired
-                      ? `${((100 * project?.amount) / project?.investmentId?.amountRequired).toFixed(2)}%`
-                      : '—'}
+                    {project?.projectShare|| 0}%
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-4">
@@ -556,7 +576,7 @@ export default function InvestmentProjectPage() {
 
                               setOpenDialogId(null); // Close dialog
                               fetchData(currentPage, entriesPerPage); // Refresh data
-                            } catch (error) {
+                            } catch (error: any) {
                               toast({
                                 title:
                                   error.response?.data?.message ||
@@ -571,7 +591,7 @@ export default function InvestmentProjectPage() {
                           className="space-y-4 pt-4"
                         >
                           <div>
-                            <Label htmlFor="extraAmount">Amount (£)</Label>
+                            <Label htmlFor="extraAmount">Amount</Label>
                             <Input
                               name="extraAmount"
                               id="extraAmount"

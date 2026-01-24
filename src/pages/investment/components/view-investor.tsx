@@ -37,6 +37,10 @@ interface InvestorParticipant {
   investmentId?: {
     title?: string;
   };
+  amount?: number;
+  projectShare?: number;
+  status?: string;
+  agentCommissionRate?: number;
 }
 
 interface InvestorOption {
@@ -69,6 +73,22 @@ export default function ViewInvestorPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Helper to format currency dynamically
+  const formatCurrency = (amount: number | undefined | null, currencyCode: string = 'GBP') => {
+    if (amount === undefined || amount === null) return '—';
+    try {
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    } catch (error) {
+      // Fallback if currency code is invalid
+      return `${currencyCode} ${amount.toFixed(2)}`;
+    }
+  };
 
   const fetchParticipants = async (page: number, limit: number) => {
     setLoading(true);
@@ -134,7 +154,7 @@ export default function ViewInvestorPage() {
         title: 'Investment Created'
       });
       closeModal();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting participant:', error);
       toast({
         title:
@@ -174,9 +194,6 @@ export default function ViewInvestorPage() {
 
   const addedInvestorIds = participants.map((p) => p.investorId?._id);
 
-  {
-    /* Filter investors not yet added */
-  }
   const filteredInvestorOptions = investors.filter(
     (investor) => !addedInvestorIds.includes(investor.value)
   );
@@ -254,10 +271,8 @@ export default function ViewInvestorPage() {
                     {participant.investmentId?.title || 'N/A'}
                   </TableCell>
                   <TableCell>
-                    £
-                    {typeof participant?.amount === 'number'
-                      ? participant.amount.toFixed(2)
-                      : '—'}
+                    {/* UPDATED: Dynamic Currency */}
+                    {formatCurrency(participant?.amount, project?.currencyType)}
                   </TableCell>
                   <TableCell>
                     {participant?.projectShare != null
@@ -339,7 +354,7 @@ export default function ViewInvestorPage() {
                                     : p
                                 )
                               );
-                            } catch (error) {
+                            } catch (error: any) {
                               toast({
                                 title:
                                   error.response?.data?.message ||
@@ -354,7 +369,8 @@ export default function ViewInvestorPage() {
                           className="space-y-4 pt-4"
                         >
                           <div>
-                            <Label htmlFor="extraAmount">Amount (£)</Label>
+                            {/* UPDATED: Label uses dynamic currency code */}
+                            <Label htmlFor="extraAmount">Amount ({project?.currencyType || 'GBP'})</Label>
                             <Input
                               name="extraAmount"
                               id="extraAmount"
@@ -455,8 +471,9 @@ export default function ViewInvestorPage() {
               {selectedInvestor && (
                 <div>
                   <div className="mb-4">
+                    {/* UPDATED: Label uses dynamic currency code */}
                     <label className="mb-2 block text-sm font-medium">
-                      Amount (&pound;)
+                      Amount ({project?.currencyType || 'GBP'})
                     </label>
                     <Controller
                       name="amount"

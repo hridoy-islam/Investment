@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Plus,
-  Pen,
   MoveLeft,
-  Eye,
-  Users,
-  ArrowLeftRight,
-  BadgePoundSterling,
-  PoundSterling,
-  Wallet,
-  Handshake
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -41,9 +33,14 @@ import moment from 'moment';
 export default function InvestmentPage() {
   const [investments, setInvestments] = useState<any>([]);
   const [initialLoading, setInitialLoading] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [editingInvestment, setEditingInvestment] = useState<any>();
   const [selectedAmountRequired, setSelectedAmountRequired] =
     useState<number>(0);
+    
+  // Currency State
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('GBP');
+
   // Raise Capital Dialog States
   const [raiseCapitalDialogOpen, setRaiseCapitalDialogOpen] = useState(false);
   const [selectedInvestmentId, setSelectedInvestmentId] = useState<
@@ -70,6 +67,21 @@ export default function InvestmentPage() {
   const [count, setCount] = useState(0);
 
   const increment = () => setCount((prev) => prev + 1);
+
+  // Helper to format currency dynamically
+  const formatCurrency = (amount: number, currencyCode: string = 'GBP') => {
+    try {
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    } catch (error) {
+      // Fallback if currency code is invalid
+      return `${currencyCode} ${amount.toFixed(2)}`;
+    }
+  };
 
   const fetchData = async (page, limit, searchTerm = '') => {
     try {
@@ -128,7 +140,8 @@ export default function InvestmentPage() {
     setSelectedInvestmentId(investment._id);
     setRaiseAmount('');
     setSelectedCurrentAmountRequired(investment.amountRequired || 0);
-    setSelectedProjectName(investment.title || ''); // Add this
+    setSelectedProjectName(investment.title || '');
+    setSelectedCurrency(investment.currencyType || 'GBP'); // Set currency
     setRaiseCapitalDialogOpen(true);
   };
 
@@ -180,9 +193,10 @@ export default function InvestmentPage() {
   // Set Sale Price Handlers
   const handleSetSalePriceClick = (investment) => {
     setSelectedInvestmentId(investment._id);
-    setSalePrice( '');
+    setSalePrice('');
     setSelectedAmountRequired(investment.amountRequired || 0);
-    setSelectedProjectName(investment.title || ''); // <- new line
+    setSelectedProjectName(investment.title || '');
+    setSelectedCurrency(investment.currencyType || 'GBP'); // Set currency
     setSalePriceDialogOpen(true);
   };
 
@@ -227,7 +241,7 @@ export default function InvestmentPage() {
       setSalePriceLoading(false);
     }
   };
-const calculateDueAmount = (inv) => {
+  const calculateDueAmount = (inv) => {
     const required = inv.amountRequired || 0;
     const investment = inv.investmentAmount || 0;
     return investment - required;
@@ -293,7 +307,7 @@ const calculateDueAmount = (inv) => {
                 <TableHead>Due Amount</TableHead>
                 <TableHead className="text-center">Sale/CMV</TableHead>
                 <TableHead className="text-center">Raise Capital</TableHead>
-                
+
                 <TableHead className="text-center">Project Log</TableHead>
                 <TableHead className="text-center">Investors</TableHead>
                 <TableHead className="text-center">Detail</TableHead>
@@ -302,112 +316,118 @@ const calculateDueAmount = (inv) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {investments.map((investment) => { 
+              {investments.map((investment) => {
                 const due = calculateDueAmount(investment);
+                const currency = investment.currencyType || 'GBP';
 
-                return(
-                <TableRow key={investment._id}>
-                  <TableCell>{investment.title}</TableCell>
-                  <TableCell>
-                    {investment?.amountRequired?.toFixed(2) || 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    {`${investment?.adminCost?.toFixed(2)}%` || '-'}
-                  </TableCell>
-                  <TableCell>
-                      {due.toFixed(2)}
+                return (
+                  <TableRow key={investment._id}>
+                    <TableCell>{investment.title}</TableCell>
+                    <TableCell>
+                      {investment?.amountRequired
+                        ? formatCurrency(investment.amountRequired, currency)
+                        : 'N/A'}
                     </TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      size="icon"
-                      onClick={() => handleSetSalePriceClick(investment)}
-                      className="bg-red-600 text-white hover:bg-red-600/90"
-                    >
-                      <Handshake className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      size="icon"
-                      onClick={() => handleRaiseCapitalClick(investment)}
-                      className="hover:bg-indigo/90 bg-emerald-600 text-white"
-                    >
-                      <PoundSterling className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                 
-                  <TableCell className="text-center">
-                    <Button
-                      size="icon"
-                      onClick={() =>
-                        navigate(
-                          `/dashboard/investments/transactions/${investment._id}`
-                        )
-                      }
-                      className="hover:bg-indigo/90 bg-lime-600 text-white"
-                    >
-                      <Wallet className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      size="icon"
-                      onClick={() =>
-                        navigate(
-                          `/dashboard/investments/participant/${investment._id}`
-                        )
-                      }
-                      className="bg-sky-600 text-white hover:bg-sky-600/90"
-                    >
-                      <Users className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      variant="ghost"
-                      className="border-none bg-rose-500 text-white hover:bg-rose-500/90"
-                      size="icon"
-                      onClick={() =>
-                        navigate(
-                          `/dashboard/investments/view/${investment._id}`
-                        )
-                      }
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                  <TableCell className="flex flex-row items-center justify-center gap-2 text-center">
-                    <Button
-                      variant="ghost"
-                      className="border-none bg-theme text-white hover:bg-theme/90"
-                      size="icon"
-                      onClick={() => handleEdit(investment)}
-                    >
-                      <Pen className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex flex-row items-center gap-1">
-                      <Switch
-                        checked={investment.status === 'active'}
-                        onCheckedChange={(checked) =>
-                          handleStatusChange(investment._id, checked)
-                        }
-                        className="mx-auto"
-                      />
-                      <Badge
-                        className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                          investment.status === 'active'
-                            ? 'bg-green-100 text-green-800 hover:bg-green-100'
-                            : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
-                        }`}
+                    <TableCell>
+                      {`${investment?.adminCost?.toFixed(2)}%` || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {formatCurrency(due, currency)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        size="sm"
+                        onClick={() => handleSetSalePriceClick(investment)}
+                        className="bg-red-600 text-white hover:bg-red-600/90"
                       >
-                        {investment.status === 'active' ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )})}
+                        Sale/CMV
+                      </Button>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        size="sm"
+                        onClick={() => handleRaiseCapitalClick(investment)}
+                        className="hover:bg-indigo/90 bg-emerald-600 text-white"
+                      >
+                        Raise Capital
+                      </Button>
+                    </TableCell>
+
+                    <TableCell className="text-center">
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          navigate(
+                            `/dashboard/investments/transactions/${investment._id}`
+                          )
+                        }
+                        className="hover:bg-indigo/90 bg-lime-600 text-white"
+                      >
+                        Project Log
+                      </Button>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          navigate(
+                            `/dashboard/investments/participant/${investment._id}`
+                          )
+                        }
+                        className="bg-sky-600 text-white hover:bg-sky-600/90"
+                      >
+                        Investors
+                      </Button>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="ghost"
+                        className="border-none bg-rose-500 text-white hover:bg-rose-500/90"
+                        size="sm"
+                        onClick={() =>
+                          navigate(
+                            `/dashboard/investments/view/${investment._id}`
+                          )
+                        }
+                      >
+                        Details
+                      </Button>
+                    </TableCell>
+                    <TableCell className="flex flex-row items-center justify-center gap-2 text-center">
+                      <Button
+                        variant="ghost"
+                        className="border-none bg-theme text-white hover:bg-theme/90"
+                        size="sm"
+                        onClick={() => handleEdit(investment)}
+                      >
+                        Edit
+                      </Button>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex flex-row items-center gap-1">
+                        <Switch
+                          checked={investment.status === 'active'}
+                          onCheckedChange={(checked) =>
+                            handleStatusChange(investment._id, checked)
+                          }
+                          className="mx-auto"
+                        />
+                        <Badge
+                          className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                            investment.status === 'active'
+                              ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                              : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+                          }`}
+                        >
+                          {investment.status === 'active'
+                            ? 'Active'
+                            : 'Inactive'}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
@@ -446,7 +466,7 @@ const calculateDueAmount = (inv) => {
             <div className="text-sm font-medium text-gray-700">
               Current Investment Amount:{' '}
               <span className="font-semibold">
-                £{selectedCurrentAmountRequired.toFixed(2)}
+                {formatCurrency(selectedCurrentAmountRequired, selectedCurrency)}
               </span>
             </div>
 
@@ -455,14 +475,14 @@ const calculateDueAmount = (inv) => {
               <div className="text-sm font-medium text-gray-700">
                 Updated Investment Amount:{' '}
                 <span className="font-semibold">
-                  £{updatedAmountRequired.toFixed(2)}
+                  {formatCurrency(updatedAmountRequired, selectedCurrency)}
                 </span>
               </div>
             )}
 
             {/* Raise Amount Input */}
             <div className="space-y-2">
-              <Label htmlFor="amountRequired">Raise Amount (£)</Label>
+              <Label htmlFor="amountRequired">Raise Amount ({selectedCurrency})</Label>
               <Input
                 id="amountRequired"
                 type="number"
@@ -524,19 +544,21 @@ const calculateDueAmount = (inv) => {
             <div className="text-sm font-medium text-gray-700">
               Investment Amount:{' '}
               <span className="font-semibold">
-                £{selectedAmountRequired.toFixed(2)}
+                {formatCurrency(selectedAmountRequired, selectedCurrency)}
               </span>
             </div>
 
             {grossProfit !== null && (
               <div className="pb-4 font-medium text-gray-700">
                 Gross Profit:{' '}
-                <span className="font-semibold">£{grossProfit.toFixed(2)}</span>
+                <span className="font-semibold">
+                  {formatCurrency(grossProfit, selectedCurrency)}
+                </span>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="salePrice">Sale Price (£)</Label>
+              <Label htmlFor="salePrice">Sale Price ({selectedCurrency})</Label>
               <Input
                 id="salePrice"
                 type="number"

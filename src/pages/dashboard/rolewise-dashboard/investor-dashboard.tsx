@@ -93,7 +93,7 @@ export function InvestorDashboard({ user }) {
         </motion.div>
 
         {/* Total Invested Amount */}
-        <motion.div
+        {/* <motion.div
           className="rounded-2xl border border-gray-100 bg-white p-6 shadow cursor-pointer"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -144,7 +144,7 @@ export function InvestorDashboard({ user }) {
               £{totalPaid.toLocaleString()}
             </p>
           )}
-        </motion.div>
+        </motion.div> */}
       </div>
     </div>
   );

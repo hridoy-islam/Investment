@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import Select from 'react-select'; // Added react-select
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,28 +30,30 @@ import {
   FileText,
   Image as ImageIcon,
   X,
-  DollarSign,
+  DollarSign, // Generic icon for inputs
   TrendingUp,
   ArrowLeft,
   Save,
   Plus,
   Calculator,
-  PoundSterling
+  Coins
 } from 'lucide-react';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form'; // Added Controller
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/components/ui/use-toast';
 
 import axiosInstance from '@/lib/axios';
 import { useNavigate, useParams } from 'react-router-dom';
+import { currency } from '@/types/currencyType';
 
-// 1. UPDATE: Updated Schema to match Create Page
+// 1. UPDATE: Updated Schema to include currencyType
 const investmentSchema = z.object({
   title: z
     .string()
     .min(1, 'Project title is required')
     .max(100, 'Title must be less than 100 characters'),
+  currencyType: z.string().min(1, 'Currency is required'), // Added
   amountRequired: z
     .number({
       invalid_type_error: 'Amount is required'
@@ -81,15 +84,23 @@ interface Document {
 interface InvestmentData {
   title: string;
   details: string;
+  currencyType: string; // Added
   image?: string;
   amountRequired: number;
-  investmentAmount?: number; // Added field
+  investmentAmount?: number;
   adminCost?: number;
   documents?: Array<{
     title: string;
     file?: string;
   }>;
 }
+
+// Transform currency object to react-select options
+const currencyOptions = Object.entries(currency).map(([code, details]) => ({
+  value: code,
+  label: `${code} - ${details.name} (${details.symbol})`,
+  symbol: details.symbol
+}));
 
 export default function EditInvestment() {
   const navigate = useNavigate();
@@ -112,6 +123,7 @@ export default function EditInvestment() {
   const {
     register,
     handleSubmit,
+    control, // Needed for Controller
     formState: { errors },
     reset,
     watch
@@ -119,6 +131,7 @@ export default function EditInvestment() {
     resolver: zodResolver(investmentSchema),
     defaultValues: {
       title: '',
+      currencyType: '', // Added
       amountRequired: 0,
       investmentAmount: 0,
       adminCost: 0
@@ -129,6 +142,21 @@ export default function EditInvestment() {
 
   // 2. UPDATE: Dynamic Due Amount Calculation
   const dueAmount = (watchedValues.investmentAmount || 0) - (watchedValues.amountRequired || 0);
+
+  // Helper to format currency dynamically based on selection
+  const formatCurrency = (amount: number) => {
+    const currencyCode = watchedValues.currencyType || 'GBP';
+    try {
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(amount);
+    } catch (error) {
+      return `${amount}`;
+    }
+  };
 
   const quillModules = useMemo(
     () => ({
@@ -160,9 +188,10 @@ export default function EditInvestment() {
         const data: InvestmentData = response.data.data;
         setInvestment(data);
 
-        // 3. UPDATE: Reset form with investmentAmount
+        // 3. UPDATE: Reset form with currencyType and other fields
         reset({
           title: data.title || '',
+          currencyType: data.currencyType || 'GBP', // Default to GBP if missing
           amountRequired: data.amountRequired || 0,
           investmentAmount: data.investmentAmount || 0,
           adminCost: data.adminCost || 0
@@ -279,13 +308,14 @@ export default function EditInvestment() {
     setIsSubmitting(true);
 
     try {
-      // 4. UPDATE: Include investmentAmount and saleAmount in payload
+      // 4. UPDATE: Include currencyType in payload
       const formData = {
-         action: "updateDetail",
+        action: "updateDetail",
         title: data.title,
         details,
+        currencyType: data.currencyType, // Added
         image: featuredImage || investment?.image || null,
-        // amountRequired: data.amountRequired,
+        amountRequired: data.amountRequired, // Should usually be included if edited
         investmentAmount: data.investmentAmount,
         adminCost: data.adminCost || 0,
         documents: documents.map((doc) => ({
@@ -312,15 +342,6 @@ export default function EditInvestment() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // 5. UPDATE: Use GBP formatting to match Create page
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0
-    }).format(amount);
   };
 
   return (
@@ -537,7 +558,7 @@ export default function EditInvestment() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-green-600" />
+                    <Coins className="h-5 w-5 text-green-600" />
                     Financial Information
                   </CardTitle>
                   <CardDescription>
@@ -546,21 +567,52 @@ export default function EditInvestment() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+                    {/* Currency Selection Field (New) */}
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="currencyType">Currency *</Label>
+                      <Controller
+                        name="currencyType"
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            {...field}
+                            options={currencyOptions}
+                            value={currencyOptions.find(c => c.value === field.value)}
+                            onChange={(val) => field.onChange(val?.value)}
+                            placeholder="Select Currency"
+                            className="react-select-container"
+                            classNamePrefix="react-select"
+                            styles={{
+                              control: (base) => ({
+                                ...base,
+                                borderColor: errors.currencyType ? 'red' : base.borderColor,
+                              })
+                            }}
+                          />
+                        )}
+                      />
+                      {errors.currencyType && (
+                        <p className="text-sm text-red-500">
+                          {errors.currencyType.message}
+                        </p>
+                      )}
+                    </div>
                     
                     {/* Amount Required */}
                     <div className="space-y-2">
                       <Label htmlFor="amountRequired">Amount Required *</Label>
                       <div className="relative">
-                        <PoundSterling className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        {/* Switched to generic icon since currency can change */}
                         <Input
                           id="amountRequired"
                           type="number"
-                           disabled
+                          disabled
                           {...register('amountRequired', {
                             valueAsNumber: true
                           })}
                           placeholder="0"
-                          className={`pl-10 ${
+                          className={` ${
                             errors.amountRequired ? 'border-red-500' : ''
                           }`}
                         />
@@ -590,13 +642,12 @@ export default function EditInvestment() {
                     <div className="space-y-2">
                       <Label htmlFor="investmentAmount">Investment Amount</Label>
                       <div className="relative">
-                        <PoundSterling className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                         <Input
                           id="investmentAmount"
                           type="number"
                           {...register('investmentAmount', { valueAsNumber: true })}
                           placeholder="0"
-                          className={`pl-10 ${errors.investmentAmount ? 'border-red-500' : ''}`}
+                          className={` ${errors.investmentAmount ? 'border-red-500' : ''}`}
                         />
                       </div>
                       {errors.investmentAmount && (
@@ -702,11 +753,18 @@ export default function EditInvestment() {
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Currency:</span>
+                        <span className="font-medium">
+                            {watchedValues.currencyType || 'Not selected'}
+                        </span>
+                    </div>
+
+                    <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Amount Required:</span>
                       <span className="font-medium">
                         {watchedValues.amountRequired
                           ? formatCurrency(watchedValues.amountRequired)
-                          : '£0'}
+                          : formatCurrency(0)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -724,7 +782,7 @@ export default function EditInvestment() {
                       <span className="font-medium text-blue-600">
                         {watchedValues.investmentAmount
                           ? formatCurrency(watchedValues.investmentAmount)
-                          : '£0'}
+                          : formatCurrency(0)}
                       </span>
                     </div>
 

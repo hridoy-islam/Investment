@@ -15,12 +15,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
-import { useNavigate, useParams } from 'react-router-dom'; // Added useParams
+import { useNavigate, useParams } from 'react-router-dom';
 import Select from 'react-select';
-import { countries, currencies } from '@/types/index';
+import { countries } from '@/types/index'; // Removed currencies import
 import { useSelector } from 'react-redux';
 import { useEffect } from 'react';
 import { MoveLeft } from 'lucide-react';
+import { currency } from '@/types/currencyType'; // Added currency import
+
+// Create currency options from the currencyType object
+const currencyOptions = Object.entries(currency).map(([code, info]) => ({
+  label: `${code} - ${info.name} (${info.symbol})`,
+  value: code
+}));
 
 // Zod Validation Schema
 const bankSchema = z.object({
@@ -42,12 +49,13 @@ const bankSchema = z.object({
   swift: z.string().optional(),
   addtionalNotes: z.string().optional()
 });
+
 type BankFormValues = z.infer<typeof bankSchema>;
 
 export default function EditBankPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { id } = useParams(); // Get the bank ID from URL
+  const { id } = useParams();
   const { user } = useSelector((state: any) => state.auth);
 
   const form = useForm<BankFormValues>({
@@ -112,9 +120,9 @@ export default function EditBankPage() {
     try {
       const payload = {
         ...data,
-        userId: user._id // Include userId explicitly
+        userId: user._id
       };
-      await axiosInstance.patch(`/banks/${id}`, payload); // Patch to /banks/{id}
+      await axiosInstance.patch(`/banks/${id}`, payload);
       toast({
         title: 'Bank account updated successfully.'
       });
@@ -167,7 +175,7 @@ export default function EditBankPage() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {/* Section: Basic Info */}
             <motion.div variants={itemVariants} className="space-y-4">
-               <div className="flex flex-row items-center justify-between">
+              <div className="flex flex-row items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-700">
                   Basic Information
                 </h2>
@@ -181,6 +189,8 @@ export default function EditBankPage() {
                 </Button>
               </div>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                
+                {/* --- Updated Currency Field --- */}
                 <FormField
                   control={form.control}
                   name="currency"
@@ -189,8 +199,8 @@ export default function EditBankPage() {
                       <FormLabel>Currency</FormLabel>
                       <FormControl>
                         <Select
-                          options={currencies}
-                          value={currencies.find(
+                          options={currencyOptions}
+                          value={currencyOptions.find(
                             (c) => c.value === field.value
                           )}
                           onChange={(selected) =>
@@ -204,6 +214,8 @@ export default function EditBankPage() {
                     </FormItem>
                   )}
                 />
+                {/* ------------------------------- */}
+
                 <FormField
                   control={form.control}
                   name="bankCountry"
@@ -229,6 +241,7 @@ export default function EditBankPage() {
                 />
               </div>
             </motion.div>
+            
             {/* Section: Beneficiary Info */}
             <motion.div variants={itemVariants} className="space-y-4">
               <h2 className="text-xl font-semibold text-gray-700">
@@ -302,6 +315,7 @@ export default function EditBankPage() {
                 />
               </div>
             </motion.div>
+            
             {/* Section: Personal Info */}
             <motion.div variants={itemVariants} className="space-y-4">
               <h2 className="text-xl font-semibold text-gray-700">
@@ -362,6 +376,7 @@ export default function EditBankPage() {
                 />
               </div>
             </motion.div>
+            
             {/* Section: Account & SWIFT */}
             <motion.div variants={itemVariants} className="space-y-4">
               <h2 className="text-xl font-semibold text-gray-700">
@@ -396,6 +411,7 @@ export default function EditBankPage() {
                 />
               </div>
             </motion.div>
+            
             {/* Section: Notes */}
             <motion.div variants={itemVariants} className="space-y-4">
               <h2 className="text-xl font-semibold text-gray-700">
@@ -420,6 +436,7 @@ export default function EditBankPage() {
                 )}
               />
             </motion.div>
+            
             {/* Submit Button */}
             <motion.div
               variants={itemVariants}

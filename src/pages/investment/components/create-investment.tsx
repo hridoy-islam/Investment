@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import Select from 'react-select'; // Added react-select
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,39 +33,39 @@ import {
   Image as ImageIcon,
   X,
   Plus,
-  DollarSign,
   TrendingUp,
   ArrowLeft,
   Save,
   Calculator,
-  PoundSterling,
-
+  PoundSterling, // You might want to change this icon dynamically or use a generic one like DollarSign or Coins
+  Coins
 } from 'lucide-react';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form'; // Added Controller
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import axiosInstance from "@/lib/axios"
+import axiosInstance from "@/lib/axios";
+import { currency } from '@/types/currencyType';
 
-// UPDATE: Added invalid_type_error to handle 'NaN' from empty number inputs
+// UPDATE: Added currencyType to schema
 const investmentSchema = z.object({
   title: z
     .string()
     .min(1, 'Project title is required')
     .max(100, 'Title must be less than 100 characters'),
+  currencyType: z.string().min(1, 'Currency is required'), // Added required currencyType
   amountRequired: z
     .number({ 
-      invalid_type_error: 'Amount is required' // Custom error for empty input
+      invalid_type_error: 'Amount is required'
     })
     .positive('Amount must be greater than 0'),
   investmentAmount: z
     .number({ 
-      invalid_type_error: 'Investment amount is required' // Custom error for empty input
+      invalid_type_error: 'Investment amount is required'
     })
     .min(0, 'Investment amount cannot be negative')
     .default(0),
-  // Use preprocess to handle empty/NaN for optional adminCost without error
   adminCost: z.preprocess(
     (val) => (Number.isNaN(val) ? 0 : val), 
     z.number().optional()
@@ -79,6 +80,13 @@ interface Document {
   file: File;
   size: string;
 }
+
+// Transform currency object to react-select options
+const currencyOptions = Object.entries(currency).map(([code, details]) => ({
+  value: code,
+  label: `${code} - ${details.name} (${details.symbol})`,
+  symbol: details.symbol
+}));
 
 export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -97,10 +105,12 @@ export default function App() {
   });
 
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const {
     register,
     handleSubmit,
+    control, // Needed for Controller
     formState: { errors },
     reset,
     watch
@@ -108,6 +118,7 @@ export default function App() {
     resolver: zodResolver(investmentSchema),
     defaultValues: {
       title: '',
+      currencyType: '', 
       amountRequired: 0,
       investmentAmount: 0,
       adminCost: 0
@@ -115,8 +126,24 @@ export default function App() {
   });
 
   const watchedValues = watch();
-
   const dueAmount = (watchedValues.investmentAmount || 0) - (watchedValues.amountRequired || 0);
+
+  // Helper to format currency dynamically based on selection
+  const formatCurrency = (amount: number) => {
+    const currencyCode = watchedValues.currencyType || 'GBP';
+    
+    try {
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount);
+    } catch (error) {
+      // Fallback if currency code is invalid momentarily
+      return `${amount}`;
+    }
+  };
 
   // React Quill modules configuration
   const quillModules = useMemo(
@@ -226,7 +253,6 @@ export default function App() {
     }
 
     setIsSubmitting(true);
-
     
     for (let i = 0; i <= 100; i += 10) {
       setUploadProgress(i);
@@ -238,6 +264,7 @@ export default function App() {
         title: data.title,
         image: featuredImage, 
         details: details,
+        currencyType: data.currencyType, // Added to payload
         amountRequired: data.amountRequired,
         investmentAmount: data.investmentAmount,
         adminCost: data.adminCost || 0,
@@ -247,9 +274,9 @@ export default function App() {
         }))
       };
 
-      await axiosInstance.post('/investments', formData)
+      await axiosInstance.post('/investments', formData);
 
-      navigate('/dashboard/investments')
+      navigate('/dashboard/investments');
 
       toast({
         title: 'Investment project created',
@@ -257,7 +284,6 @@ export default function App() {
           'Your investment project has been successfully submitted for review'
       });
 
-      // Reset form
       reset();
       setDetails('');
       setFeaturedImage(null);
@@ -276,15 +302,6 @@ export default function App() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-    minimumFractionDigits: 0
-  }).format(amount);
-};
-  const navigate = useNavigate()
-
   return (
     <div className="min-h-screen bg-white p-4 md:p-8">
       <div className=" space-y-8">
@@ -294,9 +311,8 @@ export default function App() {
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">
               Create Investment Project
             </h1>
-           
           </div>
-          <Button  className="gap-2 bg-theme text-white hover:bg-theme/90" onClick={()=>navigate(-1)}>
+          <Button className="gap-2 bg-theme text-white hover:bg-theme/90" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
@@ -357,8 +373,6 @@ export default function App() {
                 </CardContent>
               </Card>
 
-              
-
               {/* Supporting Documents */}
               <Card>
                 <CardHeader>
@@ -367,8 +381,7 @@ export default function App() {
                     Supporting Documents
                   </CardTitle>
                   <CardDescription>
-                    Upload business plans, financial statements, and other
-                    relevant documents
+                    Upload business plans, financial statements, and other relevant documents
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -504,7 +517,7 @@ export default function App() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <PoundSterling className="h-5 w-5 text-green-600" />
+                    <Coins className="h-5 w-5 text-green-600" />
                     Financial Information
                   </CardTitle>
                   <CardDescription>
@@ -513,12 +526,42 @@ export default function App() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+                    {/* Currency Selection Field (New) */}
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="currencyType">Currency *</Label>
+                      <Controller
+                        name="currencyType"
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            {...field}
+                            options={currencyOptions}
+                            value={currencyOptions.find(c => c.value === field.value)}
+                            onChange={(val) => field.onChange(val?.value)}
+                            placeholder="Select Currency"
+                            className="react-select-container"
+                            classNamePrefix="react-select"
+                            styles={{
+                              control: (base, state) => ({
+                                ...base,
+                                borderColor: errors.currencyType ? 'red' : base.borderColor,
+                              })
+                            }}
+                          />
+                        )}
+                      />
+                      {errors.currencyType && (
+                        <p className="text-sm text-red-500">
+                          {errors.currencyType.message}
+                        </p>
+                      )}
+                    </div>
                     
                     {/* Amount Required */}
                     <div className="space-y-2">
                       <Label htmlFor="amountRequired">Amount Required *</Label>
                       <div className="relative">
-                        <PoundSterling className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                         <Input
                           id="amountRequired"
                           type="number"
@@ -526,7 +569,7 @@ export default function App() {
                             valueAsNumber: true
                           })}
                           placeholder="0"
-                          className={`pl-10 ${errors.amountRequired ? 'border-red-500' : ''}`}
+                          className={`pl-3 ${errors.amountRequired ? 'border-red-500' : ''}`}
                         />
                       </div>
                       {errors.amountRequired && (
@@ -554,13 +597,12 @@ export default function App() {
                     <div className="space-y-2">
                       <Label htmlFor="investmentAmount">Investment Amount</Label>
                       <div className="relative">
-                        <PoundSterling className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                         <Input
                           id="investmentAmount"
                           type="number"
                           {...register('investmentAmount', { valueAsNumber: true })}
                           placeholder="0"
-                          className={`pl-10 ${errors.investmentAmount ? 'border-red-500' : ''}`}
+                          className={`pl-3 ${errors.investmentAmount ? 'border-red-500' : ''}`}
                         />
                       </div>
                       {errors.investmentAmount && (
@@ -586,11 +628,8 @@ export default function App() {
                     </div>
 
                   </div>
-
-                  
                 </CardContent>
               </Card>
-
 
               {/* Featured Image */}
               <Card>
@@ -658,11 +697,18 @@ export default function App() {
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Currency:</span>
+                      <span className="font-medium">
+                        {watchedValues.currencyType || 'Not selected'}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Amount Required:</span>
                       <span className="font-medium">
                         {watchedValues.amountRequired
                           ? formatCurrency(watchedValues.amountRequired)
-                          : '£0'}
+                          : formatCurrency(0)}
                       </span>
                     </div>
 
@@ -680,7 +726,7 @@ export default function App() {
                       <span className="font-medium text-blue-600">
                         {watchedValues.investmentAmount
                           ? formatCurrency(watchedValues.investmentAmount)
-                          : '£0'}
+                          : formatCurrency(0)}
                       </span>
                     </div>
 
@@ -702,7 +748,6 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-                  
                 </CardContent>
               </Card>
             </div>
@@ -724,7 +769,6 @@ export default function App() {
           )}
 
           {/* Action Buttons */}
-
           <div className="flex justify-end ">
             <Button type="submit" disabled={isSubmitting} className='bg-theme text-white hover:bg-theme/90'>
               <Save className="h-4 w-4" />

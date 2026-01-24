@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axiosInstance from '@/lib/axios';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { Button } from '@/components/ui/button';
 import { MoveLeft } from 'lucide-react';
@@ -20,8 +20,13 @@ export default function InvestmentTransactionPage() {
   const [loading, setLoading] = useState(true);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const navigate = useNavigate();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<any[]>([]);
+  
+  // New state for project details (title, currency)
+  const [project, setProject] = useState<any>(null);
+  const [currencyType, setCurrencyType] = useState<string>('GBP');
 
   const allMonths = [
     'January',
@@ -38,6 +43,20 @@ export default function InvestmentTransactionPage() {
     'December'
   ];
 
+  // Helper to format currency dynamically
+  const formatCurrency = (amount: number, currency: string = 'GBP') => {
+    try {
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    } catch (error) {
+      return `${currency} ${amount.toFixed(2)}`;
+    }
+  };
+
   const generateYears = () => {
     const years = [];
     const startYear = currentYear - 50;
@@ -48,16 +67,31 @@ export default function InvestmentTransactionPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axiosInstance.get(`/transactions`, {
-        params: { investmentId: id }
-      });
-      const allTx = res.data?.data?.result || [];
+
+      // Fetch Transactions AND Project Details in parallel
+      const [txRes, projectRes] = await Promise.all([
+        axiosInstance.get(`/transactions`, {
+            params: { investmentId: id }
+        }),
+        axiosInstance.get(`/investments/${id}`)
+      ]);
+
+      // Set Project Data & Currency
+      const projectData = projectRes.data?.data;
+      setProject(projectData);
+      if (projectData?.currencyType) {
+        setCurrencyType(projectData.currencyType);
+      }
+
+      // Process Transactions
+      const allTx = txRes.data?.data?.result || [];
       const filtered = allTx.filter((tx: any) =>
         tx.month?.startsWith(currentYear)
       );
       setTransactions(filtered);
+
     } catch (error) {
-      console.error('Failed to fetch transactions:', error);
+      console.error('Failed to fetch data:', error);
     } finally {
       setLoading(false);
     }
@@ -65,6 +99,7 @@ export default function InvestmentTransactionPage() {
 
   useEffect(() => {
     if (id) fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, currentYear]);
 
   const getMonthWiseTransactions = () => {
@@ -76,6 +111,8 @@ export default function InvestmentTransactionPage() {
     });
     return monthMap;
   };
+  
+  const monthWiseMap = getMonthWiseTransactions();
 
   const getFilteredOrderedMonths = () => {
     const now = new Date();
@@ -93,7 +130,6 @@ export default function InvestmentTransactionPage() {
     });
   };
 
-  const monthWiseMap = getMonthWiseTransactions();
 
   // Helper to format camelCase to Title Case (e.g. adminCostDeclared -> Admin Cost Declared)
   const formatTransactionType = (type: string) => {
@@ -124,7 +160,7 @@ export default function InvestmentTransactionPage() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-row items-center gap-4">
             <h1 className="text-2xl font-bold">
-              {transactions[0]?.investmentId?.title}
+              {project?.title || transactions[0]?.investmentId?.title || 'Project'}
             </h1>
             <div className="flex flex-row items-center gap-4">
               <h1 className="text-2xl font-medium">Transaction History</h1>
@@ -215,11 +251,11 @@ export default function InvestmentTransactionPage() {
                       key={idx}
                       className="overflow-hidden rounded-md border border-gray-200 shadow-sm"
                     >
-                      <CardHeader className=" pb-4">
-                        <CardTitle className="text-lg font-semibold">
+                      <div className="border-b bg-gray-50 px-4 py-3">
+                         <h3 className="text-lg font-semibold text-gray-900">
                           {monthName} {currentYear}
-                        </CardTitle>
-                      </CardHeader>
+                        </h3>
+                      </div>
 
                       <div className="p-0">
                         {allLogs.length === 0 ? (
@@ -229,10 +265,9 @@ export default function InvestmentTransactionPage() {
                         ) : (
                           <div className="w-full">
                             {/* Table-like Header */}
-                            <div className="grid grid-cols-12 gap-4 border-b  px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            <div className="grid grid-cols-12 gap-4 border-b px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
                               <div className="col-span-2">Date</div>
                               <div className="col-span-3">Transaction ID</div>
-                              {/* <div className="col-span-2 text-right">Title</div> */}
                               <div className="col-span-3">Details</div>
                               <div className="col-span-2 text-right">Amount</div>
                             </div>
@@ -241,13 +276,9 @@ export default function InvestmentTransactionPage() {
                             <div className="divide-y divide-gray-100">
                               {allLogs.map((log, index) => {
                                 
-                                // 1. Determine Title (Category/Type)
-                                const titleText = formatTransactionType(log.transactionType || log.type);
-
-                                // 2. Determine Details (Description/Message)
+                                // Determine Details (Description/Message)
                                 let detailsText = log.message || log.note || '-';
                                 
-                                // Special case adjustments for clearer details
                                 if (log.transactionType === 'profitPayment') {
                                    detailsText = ` ${log.note ? `${log.note}` : ''}`;
                                 } else if (log.transactionType === 'investment') {
@@ -276,30 +307,23 @@ export default function InvestmentTransactionPage() {
                                     {/* Transaction ID */}
                                     <div className="col-span-3 flex items-center">
                                       <span
-                                        className=" font-mono text-xs"
+                                        className="font-mono text-xs"
                                         title={log._id}
                                       >
                                         {log._id}
                                       </span>
                                     </div>
 
-                                    {/* Title (Type) */}
-                                    {/* <div className="col-span-2 flex items-center justify-end font-semibold text-blue-700">
-                                      <span className="truncate" title={titleText}>
-                                        {titleText}
-                                      </span>
-                                    </div> */}
-
                                     {/* Details (Message) */}
                                     <div className="col-span-3 flex items-center ">
                                       <span className="" title={detailsText}>
-                                        {detailsText}
+                                        {formatTransactionType(log.transactionType)}: {detailsText}
                                       </span>
                                     </div>
 
                                     {/* Amount */}
-                                    <div className="col-span-2 flex items-center justify-end font-medium \">
-                                      {amount > 0 ? `£${amount.toFixed(2)}` : '-'}
+                                    <div className="col-span-2 flex items-center justify-end font-medium">
+                                        {amount > 0 ? formatCurrency(amount, currencyType) : '-'}
                                     </div>
                                   </div>
                                 );

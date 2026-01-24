@@ -17,9 +17,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import Select from 'react-select';
-import { countries, currencies } from '@/types/index';
+import { countries } from '@/types/index'; // Removed currencies import
 import { useSelector } from 'react-redux';
 import { MoveLeft } from 'lucide-react';
+import { currency } from '@/types/currencyType';
+
+
+const currencyOptions = Object.entries(currency).map(([code, info]) => ({
+  label: `${code} - ${info.name} (${info.symbol})`,
+  value: code
+}));
 
 // Zod Validation Schema
 const bankSchema = z.object({
@@ -47,7 +54,7 @@ type BankFormValues = z.infer<typeof bankSchema>;
 export default function CreateBankPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
-const { user } = useSelector((state: any) => state.auth);
+  const { user } = useSelector((state: any) => state.auth);
 
   const form = useForm<BankFormValues>({
     resolver: zodResolver(bankSchema),
@@ -152,8 +159,8 @@ const { user } = useSelector((state: any) => state.auth);
                       <FormLabel>Currency</FormLabel>
                       <FormControl>
                         <Select
-                          options={currencies}
-                          value={currencies.find(
+                          options={currencyOptions}
+                          value={currencyOptions.find(
                             (c) => c.value === field.value
                           )}
                           onChange={(selected) =>

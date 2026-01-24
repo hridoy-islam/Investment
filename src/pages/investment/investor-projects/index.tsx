@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
-  Plus,
-  Pen,
   MoveLeft,
   Eye,
-  Building2,
-  ArrowLeftRightIcon,
+  ArrowLeftRightIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,9 +20,24 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Badge } from '@/components/ui/badge';
 
+// Helper to format currency dynamically
+const formatCurrency = (amount: number | undefined | null, currencyCode: string = 'GBP') => {
+  if (amount === undefined || amount === null) return '—';
+  try {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch (error) {
+    // Fallback if currency code is invalid or not standard
+    return `${currencyCode} ${amount.toFixed(2)}`;
+  }
+};
+
 export default function InvestorInvestmentPage() {
   const [projects, setProjects] = useState<any[]>([]);
-  const [investments, setInvestments] = useState<any[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,15 +45,6 @@ export default function InvestorInvestmentPage() {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const { user } = useSelector((state: any) => state.auth);
   const navigate = useNavigate();
-
-  const fetchInvestments = async () => {
-    try {
-      const res = await axiosInstance.get('/investments');
-      setInvestments(res.data.data.result);
-    } catch (err) {
-      console.error('Error fetching investments:', err);
-    }
-  };
 
   const fetchProjects = async (
     page: number,
@@ -56,6 +59,7 @@ export default function InvestorInvestmentPage() {
           params: { page, limit, ...(searchTerm ? { searchTerm } : {}) }
         }
       );
+      // Based on the provided response structure: data.data.result
       setProjects(res.data.data.result);
       setTotalPages(res.data.data.meta.totalPage);
     } catch (err) {
@@ -66,16 +70,8 @@ export default function InvestorInvestmentPage() {
   };
 
   useEffect(() => {
-    fetchInvestments();
     fetchProjects(currentPage, entriesPerPage);
   }, [currentPage, entriesPerPage]);
-
-  const calculateRate = (amount: number, investmentId: string) => {
-    const investment = investments.find((inv) => inv._id === investmentId);
-    if (!investment || !investment.amountRequired) return 'N/A';
-    const rate = (100 * amount) / investment.amountRequired;
-    return `${rate.toFixed(2)}%`;
-  };
 
   return (
     <div className="space-y-3">
@@ -114,21 +110,31 @@ export default function InvestorInvestmentPage() {
             <TableBody>
               {projects.map((project) => (
                 <TableRow key={project?._id}>
-                  <TableCell className='flex items-center gap-2'>
-                    {project?.investmentId?.title}{' '}
-                     <Badge
-        className={`rounded-full px-2 py-1 text-xs font-semibold 
-          ${project.status === 'active' ? 'bg-green-100 text-green-700' : ''}
-          ${project.status === 'block' ? 'bg-red-100 text-red-700' : ''}
-        `}
-      >
-        {project.status === 'active' ? 'Active' : 'Close'}
-      </Badge>
+                  <TableCell className="flex items-center gap-2">
+                    {project?.investmentId?.title || 'Untitled Project'}{' '}
+                    <Badge
+                      className={`rounded-full px-2 py-1 text-xs font-semibold 
+                        ${project.status === 'active' ? 'bg-green-100 text-green-700' : ''}
+                        ${project.status === 'block' ? 'bg-red-100 text-red-700' : ''}
+                      `}
+                    >
+                      {project.status === 'active' ? 'Active' : 'Close'}
+                    </Badge>
                   </TableCell>
-                  <TableCell>£{project?.amount}</TableCell>
+                  
+                  {/* Updated Investment Amount Column */}
                   <TableCell>
-                    {calculateRate(project?.amount, project?.investmentId?._id)}
+                    {formatCurrency(
+                      project?.amount, 
+                      project?.investmentId?.currencyType || 'GBP'
+                    )}
                   </TableCell>
+
+                  {/* Updated Share Column */}
+                  <TableCell>
+                    {project?.projectShare ? `${project.projectShare}%` : '0%'}
+                  </TableCell>
+                  
                   <TableCell className="text-center">
                     <Button
                       size="icon"

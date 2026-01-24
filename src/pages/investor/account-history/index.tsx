@@ -4,7 +4,7 @@ import axiosInstance from '@/lib/axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { Button } from '@/components/ui/button';
-import { MoveLeft, PoundSterlingIcon, Loader2 } from 'lucide-react';
+import { MoveLeft, PoundSterlingIcon, Loader2, DollarSign, Coins } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -42,12 +42,27 @@ export default function InvestorAccountHistoryPage() {
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
   const [count, setCount] = useState(0);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [currencyType, setCurrencyType] = useState<string>('GBP'); // Default to GBP
 
   // Loading flags for payments & logs
   const [loadingTxId, setLoadingTxId] = useState<string | null>(null);
   const [loadingLogTxId, setLoadingLogTxId] = useState<string | null>(null);
-const [closingProject, setClosingProject] = useState(false);
+  const [closingProject, setClosingProject] = useState(false);
   const increment = () => setCount((prev) => prev + 1);
+
+  // Helper to format currency dynamically
+  const formatCurrency = (amount: number, currency: string = 'GBP') => {
+    try {
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    } catch (error) {
+      return `${currency} ${amount.toFixed(2)}`;
+    }
+  };
 
   const generateYears = () => {
     const years = [];
@@ -58,6 +73,7 @@ const [closingProject, setClosingProject] = useState(false);
     return years;
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sortByLatestCreatedAt = (data: any[]) =>
     data.sort((a, b) => moment(b.createdAt).diff(moment(a.createdAt)));
 
@@ -85,6 +101,11 @@ const [closingProject, setClosingProject] = useState(false);
 
         const investmentDetails = invRes.data?.data || {};
         const amountRequired = investmentDetails.amountRequired || 0;
+        
+        // Set Currency from project details
+        const projectCurrency = investmentDetails.currencyType || 'GBP';
+        setCurrencyType(projectCurrency);
+
         const computedRate =
           amountRequired > 0
             ? (100 * participantData.amount) / amountRequired
@@ -201,7 +222,7 @@ const [closingProject, setClosingProject] = useState(false);
 
   const handleCloseProjectConfirm = async () => {
     if (!data) return;
-setClosingProject(true);
+    setClosingProject(true);
     try {
       await axiosInstance.patch(`/investment-participants/${id}`, {
         totalDue: 0,
@@ -225,9 +246,9 @@ setClosingProject(true);
         title: error.response?.data?.message || 'Failed to close project',
         variant: 'destructive'
       });
-    }finally {
-    setClosingProject(false); 
-  }
+    } finally {
+      setClosingProject(false);
+    }
   };
 
   const allMonths = [
@@ -269,7 +290,7 @@ setClosingProject(true);
           <h1 className="text-2xl font-bold">Account History</h1>
           {data?.status === 'block' && (
             <p className="mt-2 text-lg font-semibold text-red-500">
-              The project has been successfully closed and fully paid
+              The project has been successfully closed and fully paid
             </p>
           )}
           {user.role === 'admin' && (
@@ -307,7 +328,7 @@ setClosingProject(true);
                     <Button
                       className="bg-theme text-white hover:bg-theme/90"
                       onClick={handleCloseProjectConfirm}
-                       disabled={closingProject}
+                      disabled={closingProject}
                     >
                       Confirm
                     </Button>
@@ -324,7 +345,8 @@ setClosingProject(true);
               </Button>
             </div>
           )}
-   {user.role !== 'admin' && ( <Button
+          {user.role !== 'admin' && (
+            <Button
               variant="ghost"
               size="sm"
               className="bg-theme text-white hover:bg-theme/90"
@@ -332,9 +354,8 @@ setClosingProject(true);
             >
               <MoveLeft className="mr-2 h-4 w-4" />
               Back
-            </Button>)}
-           
-      
+            </Button>
+          )}
         </div>
 
         {/* Loading or Content */}
@@ -355,15 +376,21 @@ setClosingProject(true);
                   label: 'Investor Name',
                   value: data.investorId?.name || 'N/A'
                 },
-                { label: 'Amount', value: `£${data.amount || 0}` },
-                { label: 'Share', value: `${data.computedRate || 0}%` },
+                { 
+                  label: 'Amount', 
+                  value: formatCurrency(data.amount || 0, currencyType)
+                },
+                { 
+                  label: 'Share', 
+                  value: `${data.projectShare || 0}%` 
+                },
                 {
                   label: 'Total Due',
-                  value: `£${(data.totalDue ?? 0).toFixed(2)}`
+                  value: formatCurrency(data.totalDue ?? 0, currencyType)
                 },
                 {
                   label: 'Total Paid',
-                  value: `£${(data.totalPaid ?? 0).toFixed(2)}`
+                  value: formatCurrency(data.totalPaid ?? 0, currencyType)
                 }
               ].map((item, i) => (
                 <div
@@ -443,17 +470,17 @@ setClosingProject(true);
                             <span className="font-medium text-black">
                               Profit:
                             </span>{' '}
-                            £{profit.toFixed(2)}
+                            {formatCurrency(profit, currencyType)}
                           </p>
                           <p className="font-semibold text-rose-500">
                             <span className="font-medium text-black">Due:</span>{' '}
-                            £{dueAmt.toFixed(2)}
+                            {formatCurrency(dueAmt, currencyType)}
                           </p>
                           <p className="font-semibold text-green-500">
                             <span className="font-medium text-black">
                               Paid:
                             </span>{' '}
-                            £{paidAmt.toFixed(2)}
+                            {formatCurrency(paidAmt, currencyType)}
                           </p>
 
                           {status === 'paid' ? (
@@ -492,7 +519,7 @@ setClosingProject(true);
                                     }
                                   >
                                     Make Payment{' '}
-                                    <PoundSterlingIcon className="ml-2 h-4 w-4" />
+                                    <Coins className="ml-2 h-4 w-4" />
                                   </Button>
                                 </DialogTrigger>
                                 <DialogContent>
@@ -504,7 +531,7 @@ setClosingProject(true);
                                   <div className="mt-4 flex flex-col gap-4">
                                     <div>
                                       <label className="mb-1 block text-sm font-medium">
-                                        Paid Amount (£)
+                                        Paid Amount ({currencyType})
                                       </label>
                                       <Input
                                         type="number"
@@ -522,7 +549,7 @@ setClosingProject(true);
 
                                           if (!isNaN(amt) && amt > due) {
                                             setPaymentError(
-                                              `Amount exceeds monthly due £${due.toFixed(2)}`
+                                              `Amount exceeds monthly due ${formatCurrency(due, currencyType)}`
                                             );
                                           } else {
                                             setPaymentError(null);
@@ -618,12 +645,12 @@ setClosingProject(true);
 
                                 {(log.paidAmount || log.metadata?.amount) && (
                                   <span className="font-semibold text-black">
-                                    £
-                                    {(
+                                    {formatCurrency(
                                       log.paidAmount ||
                                       log.metadata?.amount ||
-                                      0
-                                    ).toFixed(2)}
+                                      0,
+                                      currencyType
+                                    )}
                                   </span>
                                 )}
                               </div>

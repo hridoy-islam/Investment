@@ -39,6 +39,19 @@ export default function AgentAllTransactionPage() {
     'December'
   ];
 
+  const formatCurrency = (amount: number, currency: string = 'GBP') => {
+    try {
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    } catch (error) {
+      return `${currency} ${amount.toFixed(2)}`;
+    }
+  };
+
   const getOrderedMonths = () => {
     const now = new Date();
     const currentMonthIndex = now.getMonth();
@@ -62,7 +75,7 @@ export default function AgentAllTransactionPage() {
         params: { agentId: user._id }
       });
       const allTx = res.data?.data?.result || [];
-      const filtered = allTx.filter((tx) => tx.month?.startsWith(currentYear));
+      const filtered = allTx.filter((tx: any) => tx.month?.startsWith(currentYear));
       setTransactions(filtered);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
@@ -124,7 +137,7 @@ export default function AgentAllTransactionPage() {
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-           
+            
             <div className="flex flex-row items-start gap-4">
               <h1 className="text-2xl font-medium">Transaction History</h1>
               {/* Year Selector */}
@@ -175,13 +188,17 @@ export default function AgentAllTransactionPage() {
                   const allLogs: Array<any> = [];
 
                   transactions.forEach((tx) => {
+                    // Extract currency from the parent investment object
+                    const currency = tx.investmentId?.currencyType || 'GBP';
+
                     if (tx.paymentLog && tx.paymentLog.length > 0) {
                       tx.paymentLog.forEach((log: any) => {
                         allLogs.push({
                           ...log,
                           investorName: tx.investorId?.name,
                           createdAt: log.createdAt || tx.createdAt,
-                          isPaymentLog: true
+                          isPaymentLog: true,
+                          currency: currency
                         });
                       });
                     }
@@ -192,7 +209,9 @@ export default function AgentAllTransactionPage() {
                           ...log,
                           investorName: tx.investorId?.name,
                           createdAt: log.createdAt || tx.createdAt,
-                          isPaymentLog: false
+                          isPaymentLog: false,
+                          // Use metadata currency if available, else fallback to parent currency
+                          currency: log.metadata?.currencyType || currency
                         });
                       });
                     }
@@ -229,10 +248,10 @@ export default function AgentAllTransactionPage() {
                                     <span className=" text-black">
                                       {log._id}
                                     </span>
-                                      <p className='text-green-500'>
-                                        Payment Initiated for Investor{' '}
-                                        {log.investorName}
-                                      </p>
+                                    <p className='text-green-500'>
+                                      Payment Initiated for Investor{' '}
+                                      {log.investorName}
+                                    </p>
                                   </div>
                                 ) : log.type === 'commissionCalculated' ? (
                                   <div className="flex flex-row gap-8 text-sm text-black">
@@ -270,9 +289,9 @@ export default function AgentAllTransactionPage() {
 
                               <div className="text-right font-semibold text-black">
                                 {log?.paidAmount > 0
-                                  ? `£${log.paidAmount}`
+                                  ? formatCurrency(log.paidAmount, log.currency)
                                   : log?.metadata?.amount > 0
-                                    ? `£${log.metadata.amount}`
+                                    ? formatCurrency(log.metadata.amount, log.currency)
                                     : ''}
                               </div>
                             </div>
