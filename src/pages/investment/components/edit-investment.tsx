@@ -61,9 +61,9 @@ const investmentSchema = z.object({
     .positive('Amount must be greater than 0'),
   investmentAmount: z
     .number({
-      invalid_type_error: 'Investment amount is required'
+      invalid_type_error: 'Project Amount is required'
     })
-    .min(0, 'Investment amount cannot be negative')
+    .min(0, 'Project Amount cannot be negative')
     .default(0),
   // Handle optional/NaN for adminCost
   adminCost: z.preprocess(
@@ -638,9 +638,9 @@ export default function EditInvestment() {
                       </div>
                     </div>
 
-                    {/* 6. UPDATE: Investment Amount Input */}
+                    {/* 6. UPDATE: Project Amount Input */}
                     <div className="space-y-2">
-                      <Label htmlFor="investmentAmount">Investment Amount</Label>
+                      <Label htmlFor="investmentAmount">Project Amount</Label>
                       <div className="relative">
                         <Input
                           id="investmentAmount"
@@ -776,9 +776,9 @@ export default function EditInvestment() {
                       </span>
                     </div>
 
-                    {/* Added Investment Amount Row */}
+                    {/* Added Project Amount Row */}
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Investment Amount:</span>
+                      <span className="text-slate-600">Project Amount:</span>
                       <span className="font-medium text-blue-600">
                         {watchedValues.investmentAmount
                           ? formatCurrency(watchedValues.investmentAmount)
