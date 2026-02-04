@@ -36,6 +36,7 @@ import AgentTransactionPage from '@/pages/agent-transactions';
 import AgentTransactionHistoryPage from '@/pages/agent/accountHistory';
 import AgentAllTransactionPage from '@/pages/agent/agent-transaction';
 import InvestorAMLPage from '@/pages/investor/aml-page';
+import InvestmentManagePage from '@/pages/investment/investmentManage';
 
 const SignInPage = lazy(() => import('@/pages/auth/signin'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -104,7 +105,7 @@ export default function AppRouter() {
           path: 'investors/transactions',
           element: <InvestorTransactionPage />
         },
-         {
+        {
           path: 'investor/projects',
           element: <InvestorInvestmentPage />
         },
@@ -116,10 +117,14 @@ export default function AppRouter() {
           path: 'investor/projects/account-history/:id',
           element: <InvestorAccountHistoryPage />
         },
-        
+
         {
           path: 'investments',
           element: <InvestmentPage />
+        },
+        {
+          path: 'investments/:id',
+          element: <InvestmentManagePage />
         },
         {
           path: 'investments/new',
@@ -149,7 +154,7 @@ export default function AppRouter() {
           path: 'notifications',
           element: <NotificationsPage />
         },
-       
+
         {
           path: 'investors/bank/:id',
           element: <InvestorBankPage />

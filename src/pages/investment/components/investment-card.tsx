@@ -1,8 +1,15 @@
-import { TrendingUp, X } from 'lucide-react';
+import {
+  TrendingUp,
+  ArrowUpRight,
+  Target,
+  Wallet,
+  PieChart,
+  Pencil
+} from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
-// Minimal interface subset needed by the card's rendering
 interface Investment {
   _id: string;
   title: string;
@@ -10,7 +17,6 @@ interface Investment {
   amountRequired: number;
   investmentAmount: number;
   adminCost: number;
-//   status: 'active' | 'block';
   currencyType: string;
   saleAmount?: number;
 }
@@ -18,99 +24,126 @@ interface Investment {
 interface InvestmentCardProps {
   investment: Investment;
   onViewDetails: (id: string) => void;
-  // NOTE: Keeping this prop signature exactly as in your provided code
-  formatCurrency: (amount: number, currencyCode: string) => string; 
+  onEdit: (id: string) => void;
+  formatCurrency: (amount: number, currencyCode: string) => string;
 }
 
-// NOTE: All previously planned action dependencies like 'onRefresh' etc., are now REMOVED
 export function InvestmentCard({
   investment,
   onViewDetails,
-  formatCurrency,
+  onEdit,
+  formatCurrency
 }: InvestmentCardProps) {
-  const dueAmount = (investment.investmentAmount || 0) - (investment.amountRequired || 0);
+  // Calculations
+  const dueAmount =
+    (investment.investmentAmount || 0) - (investment.amountRequired || 0);
   const currency = investment.currencyType || 'GBP';
-  const dueClass = dueAmount <= 0 ? 'text-green-600' : 'text-red-600';
+
+  // Logic for status colors
+  const dueClass = dueAmount <= 0 ? 'text-emerald-600' : 'text-rose-600';
+  const dueBg = dueAmount <= 0 ? 'bg-emerald-50/50' : 'bg-rose-50/50';
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Only view details when clicking on card body, not buttons.
-    // NOTE: This logic now points to nothing, but keeping as is for future-proofing.
     if ((e.target as HTMLElement).closest('.action-button')) {
       return;
     }
     onViewDetails(investment._id);
   };
 
-
   return (
-    <Card 
-      className="group relative overflow-hidden transition-all hover:shadow-lg cursor-pointer"
+    <Card
+      // Added 'transform-gpu' to force hardware acceleration
+      className="group relative transform-gpu cursor-pointer overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white transition-all duration-500 hover:-translate-y-1 hover:shadow-xl"
+      // This inline style fixes the "un-rounding" bug on Chrome/Safari during animations
+      style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
       onClick={handleCardClick}
     >
-      {/* Card Image */}
-      <div className="relative h-48 w-full overflow-hidden bg-gradient-to-br from-orange-50 to-orange-100">
-        {investment.image ? (
-          <img
-            src={investment.image}
-            alt={investment.title}
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <TrendingUp className="h-20 w-20 text-orange-300" />
-          </div>
-        )}
-        
-        {/* Status Badge - Top Right (FIX: Removed the explicit 'Active/Inactive' text label) */}
-        {/* <div className="absolute right-3 top-3">
+      {/* --- Creative Image Header --- */}
+      <div className="relative h-52 w-full overflow-hidden bg-gray-100">
+        {/* Hover Gradient & Zoom Effect */}
+        <div className="absolute inset-0 z-10 bg-black/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+        <img
+          src={investment.image || '/investment.jpg'}
+          alt={investment.title}
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+        />
+
+        {/* Badge for Admin Cost */}
+        <div className="absolute left-4 top-4 z-20">
           <Badge
-            className={`
-                h-6 w-6 p-0 flex items-center justify-center rounded-full text-white
-                ${
-                    investment.status === 'active'
-                    ? 'bg-green-500' // Show just a solid color badge
-                    : 'bg-gray-500'
-                }`}
-            title={investment.status === 'active' ? 'Active' : 'Block'}
+            variant="secondary"
+            className="rounded-full border border-white/40 bg-theme px-3 py-1 font-medium text-white shadow-sm backdrop-blur-md"
           >
-              <span className="sr-only">{investment.status === 'active' ? 'Active' : 'Blocked'}</span>
+            <PieChart className="mr-1.5 h-3.5 w-3.5" />
+            Admin Fee:{' '}
+            {investment.adminCost
+              ? `${investment.adminCost.toFixed(2)}%`
+              : '0%'}
           </Badge>
-        </div> */}
+        </div>
+
+        {/* Hover Action Arrow (Top Right) */}
+        <div className="absolute right-4 top-4 z-20 translate-x-12 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-theme text-white shadow-lg">
+            <ArrowUpRight className="h-5 w-5" />
+          </div>
+        </div>
       </div>
 
-      {/* Card Content */}
+      {/* --- Card Content --- */}
       <CardContent className="p-6">
-        {/* Project Title */}
-        <h3 className="mb-4 text-xl font-semibold text-gray-900 line-clamp-2">
-          {investment.title}
-        </h3>
+        {/* --- Header Row: Title & Edit Button --- */}
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <h3 className="line-clamp-2 flex-1 text-xl font-bold leading-snug text-black transition-colors group-hover:text-gray-700">
+            {investment.title}
+          </h3>
 
-        {/* Financial Grid */}
-        <div className="space-y-3 border-t border-gray-100 pt-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Investment Target</span>
-            <span className="font-semibold text-gray-900">
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // Stop card click
+              onEdit(investment._id);
+            }}
+            className="action-button flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-theme text-white shadow-sm transition-all hover:border-theme hover:bg-theme hover:text-white"
+            title="Edit Investment"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* --- Financial Table --- */}
+        <div className="space-y-4">
+          {/* Row 1: Target */}
+          <div className="group/row flex items-center justify-between">
+            <span className="flex items-center text-sm font-medium ">
+              <Target className="mr-2 h-4 w-4  transition-colors group-hover/row:text-black" />
+              Investment Target
+            </span>
+            <span className="text-base font-bold text-black">
               {formatCurrency(investment.amountRequired, currency)}
             </span>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Admin Cost</span>
-            <span className="font-medium text-gray-900">
-              {investment.adminCost ? `${investment.adminCost.toFixed(2)}%` : '0%'}
-            </span>
-          </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Total Paid</span>
-            <span className="font-semibold text-blue-600">
+          <Separator className="bg-gray-100" />
+
+          <div className="group/row flex items-center justify-between">
+            <span className="flex items-center text-sm font-medium ">
+              <Wallet className="mr-2 h-4 w-4  transition-colors group-hover/row:text-black" />
+              Project Amount
+            </span>
+            <span className="text-base font-bold text-black">
               {formatCurrency(investment.investmentAmount, currency)}
             </span>
           </div>
 
-          <div className="flex items-center justify-between border-t border-gray-100 pt-3">
-            <span className="text-sm font-semibold text-gray-900">Due Amount</span>
-            <span className={`font-bold ${dueClass}`}>
+          {/* Row 3: Due Amount */}
+          <div
+            className={`mt-4 flex items-center justify-between rounded-xl ${dueBg} border border-transparent p-4 transition-colors group-hover:border-gray-100`}
+          >
+            <span className="text-sm font-bold uppercase tracking-wide text-black">
+              Due Amount
+            </span>
+            <span className={`text-lg font-black ${dueClass}`}>
               {formatCurrency(dueAmount, currency)}
             </span>
           </div>

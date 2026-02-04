@@ -58,7 +58,7 @@ export default function InvestmentPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [entriesPerPage, setEntriesPerPage] = useState(100);
 
   const navigate = useNavigate();
   const [count, setCount] = useState(0);
@@ -126,12 +126,12 @@ export default function InvestmentPage() {
     }
   };
 
-  const handleEdit = (data: Investment) => {
-    navigate(`/dashboard/investments/edit/${data._id}`);
+  const handleEdit = (id: Investment) => {
+    navigate(`/dashboard/investments/edit/${id}`);
   };
 
   const handleViewDetails = (id: string) => {
-    navigate(`/dashboard/investments/view/${id}`);
+    navigate(`/dashboard/investments/${id}`);
   };
 
   const handleViewInvestors = (id: string) => {
@@ -175,15 +175,12 @@ export default function InvestmentPage() {
         }
       );
       increment();
-      if (response.data.success) {
         toast({
           title: 'Success',
           description: 'Capital requirement updated successfully.',
           className: 'bg-theme border-none text-white'
         });
-      } else {
-        throw new Error('Update failed');
-      }
+      
     } catch (error) {
       toast({
         title: 'Error',
@@ -249,8 +246,10 @@ export default function InvestmentPage() {
     }
   };
 
+ 
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 rounded-lg bg-white p-5 shadow-sm">
       {/* Header + Search (old style, adapted to new UI) */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         {/* Left: Title + Search */}
@@ -266,7 +265,7 @@ export default function InvestmentPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSearch();
+                    if (e.key === 'Enter') handleSearch();
                   }}
                   placeholder="Search by project name"
                   className="h-8 w-full sm:w-[320px] lg:w-[400px]"
@@ -281,9 +280,7 @@ export default function InvestmentPage() {
               </div>
             </div>
 
-            <p className="text-sm text-gray-600">
-              Manage and track your investment projects
-            </p>
+            
           </div>
         </div>
 
@@ -292,7 +289,7 @@ export default function InvestmentPage() {
           <Button
             className="border-none bg-theme text-white hover:bg-theme/90"
             size="sm"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate('/dashboard')}
           >
             <MoveLeft className="mr-2 h-4 w-4" />
             Back
@@ -301,7 +298,7 @@ export default function InvestmentPage() {
           <Button
             className="border-none bg-theme text-white hover:bg-theme/90"
             size="sm"
-            onClick={() => navigate("/dashboard/investments/new")}
+            onClick={() => navigate('/dashboard/investments/new')}
           >
             <Plus className="mr-2 h-4 w-4" />
             New Project
@@ -309,9 +306,8 @@ export default function InvestmentPage() {
         </div>
       </div>
 
-
       {/* Projects Grid */}
-      <div className="rounded-lg bg-white p-6 shadow-sm">
+      <div className="r">
         {initialLoading ? (
           <div className="flex justify-center py-12">
             <BlinkingDots size="large" color="bg-theme" />
@@ -344,20 +340,22 @@ export default function InvestmentPage() {
                   investment={investment}
                   onViewDetails={handleViewDetails}
                   formatCurrency={formatCurrency}
+                  onEdit={handleEdit}
                 />
               ))}
             </div>
 
-            {/* Pagination */}
-            <div className="mt-6 border-t pt-4">
-              <DataTablePagination
-                pageSize={entriesPerPage}
-                setPageSize={setEntriesPerPage}
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
-            </div>
+            {investments.length > 40 && (
+              <div className="mt-6 ">
+                <DataTablePagination
+                  pageSize={entriesPerPage}
+                  setPageSize={setEntriesPerPage}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
           </>
         )}
       </div>
@@ -386,7 +384,10 @@ export default function InvestmentPage() {
             <div className="text-sm font-medium text-gray-700">
               Current Investment Amount:{' '}
               <span className="font-semibold">
-                {formatCurrency(selectedCurrentAmountRequired, selectedCurrency)}
+                {formatCurrency(
+                  selectedCurrentAmountRequired,
+                  selectedCurrency
+                )}
               </span>
             </div>
 
@@ -478,9 +479,7 @@ export default function InvestmentPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="salePrice">
-                Sale Price ({selectedCurrency})
-              </Label>
+              <Label htmlFor="salePrice">Sale Price ({selectedCurrency})</Label>
               <Input
                 id="salePrice"
                 type="number"

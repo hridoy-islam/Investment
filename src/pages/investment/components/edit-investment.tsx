@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect, useMemo } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import Select from 'react-select'; // Added react-select
+import Select from 'react-select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,11 +13,10 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -26,190 +24,188 @@ import {
 } from '@/components/ui/dialog';
 import { Toaster } from '@/components/ui/toaster';
 import {
-  Upload,
   FileText,
   Image as ImageIcon,
   X,
-  DollarSign, // Generic icon for inputs
-  TrendingUp,
+  Plus,
   ArrowLeft,
   Save,
-  Plus,
   Calculator,
-  Coins
+  CalendarClock,
+  Layers,
+  LayoutDashboard,
+  Wallet
 } from 'lucide-react';
 import { z } from 'zod';
-import { useForm, Controller } from 'react-hook-form'; // Added Controller
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/components/ui/use-toast';
-
-import axiosInstance from '@/lib/axios';
 import { useNavigate, useParams } from 'react-router-dom';
+import axiosInstance from '@/lib/axios';
 import { currency } from '@/types/currencyType';
 
-// 1. UPDATE: Updated Schema to include currencyType
+// --- Zod Schema ---
 const investmentSchema = z.object({
   title: z
     .string()
     .min(1, 'Project title is required')
-    .max(100, 'Title must be less than 100 characters'),
-  currencyType: z.string().min(1, 'Currency is required'), // Added
-  amountRequired: z
-    .number({
-      invalid_type_error: 'Amount is required'
-    })
+    .max(100, 'Title cannot exceed 100 characters'),
+  currencyType: z.string().min(1, 'Currency is required'),
+
+  // Structure Validation
+  projectDuration: z.coerce
+    .number({ invalid_type_error: 'Duration is required' })
+    .min(1, 'Duration must be at least 1 year'),
+  installmentNumber: z.coerce
+    .number({ invalid_type_error: 'Installments are required' })
+    .min(1, 'At least 1 installment is required'),
+
+  // Financial Validation
+  amountRequired: z.coerce
+    .number({ invalid_type_error: 'Amount is required' })
     .positive('Amount must be greater than 0'),
-  investmentAmount: z
-    .number({
-      invalid_type_error: 'Project Amount is required'
-    })
-    .min(0, 'Project Amount cannot be negative')
+  investmentAmount: z.coerce
+    .number({ invalid_type_error: 'Total Value is required' })
+    .min(0, 'Value cannot be negative')
     .default(0),
-  // Handle optional/NaN for adminCost
-  adminCost: z.preprocess(
-    (val) => (Number.isNaN(val) ? 0 : val),
-    z.number().optional()
-  )
+  adminCost: z.coerce
+    .number()
+    .min(0, 'Cannot be negative')
+    .max(100, 'Cannot exceed 100%')
+    .default(0)
 });
 
 type InvestmentFormData = z.infer<typeof investmentSchema>;
 
-interface Document {
+interface DocumentData {
   id: string;
   title: string;
-  file?: File | null;
+  file?: File | null; // Null if existing, File if new
   size: string;
+  isExisting?: boolean;
 }
 
-interface InvestmentData {
-  title: string;
-  details: string;
-  currencyType: string; // Added
-  image?: string;
-  amountRequired: number;
-  investmentAmount?: number;
-  adminCost?: number;
-  documents?: Array<{
-    title: string;
-    file?: string;
-  }>;
-}
-
-// Transform currency object to react-select options
+// --- Helper Data ---
 const currencyOptions = Object.entries(currency).map(([code, details]) => ({
   value: code,
-  label: `${code} - ${details.name} (${details.symbol})`,
+  label: `${code} - ${details.name}`,
   symbol: details.symbol
 }));
 
 export default function EditInvestment() {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [investment, setInvestment] = useState<InvestmentData | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Media State
   const [featuredImage, setFeaturedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [existingImage, setExistingImage] = useState<string | null>(null);
+
+  // Content State
   const [details, setDetails] = useState('');
-  const [documents, setDocuments] = useState<Document[]>([]);
+
+  // Document State
+  const [documents, setDocuments] = useState<DocumentData[]>([]);
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
   const [newDocument, setNewDocument] = useState<{
     title: string;
     file: File | null;
-  }>({ title: '', file: null });
-
-  const { toast } = useToast();
+  }>({
+    title: '',
+    file: null
+  });
 
   const {
     register,
     handleSubmit,
-    control, // Needed for Controller
+    control,
     formState: { errors },
+    watch,
     reset,
-    watch
+    setValue
   } = useForm<InvestmentFormData>({
     resolver: zodResolver(investmentSchema),
     defaultValues: {
       title: '',
-      currencyType: '', // Added
+      currencyType: 'GBP',
       amountRequired: 0,
       investmentAmount: 0,
-      adminCost: 0
+      adminCost: 0,
+      projectDuration: 0,
+      installmentNumber: 0
     }
   });
 
   const watchedValues = watch();
 
-  // 2. UPDATE: Dynamic Due Amount Calculation
-  const dueAmount = (watchedValues.investmentAmount || 0) - (watchedValues.amountRequired || 0);
+  // Calculations
+  const dueAmount =
+    (watchedValues.investmentAmount || 0) - (watchedValues.amountRequired || 0);
+  const currentSymbol =
+    currencyOptions.find((c) => c.value === watchedValues.currencyType)
+      ?.symbol || '£';
 
-  // Helper to format currency dynamically based on selection
-  const formatCurrency = (amount: number) => {
-    const currencyCode = watchedValues.currencyType || 'GBP';
-    try {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: currencyCode,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      }).format(amount);
-    } catch (error) {
-      return `${amount}`;
-    }
+  const formatMoney = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: watchedValues.currencyType || 'GBP',
+      minimumFractionDigits: 0
+    }).format(amount);
   };
 
   const quillModules = useMemo(
     () => ({
       toolbar: [
-        ['bold', 'italic', 'underline', 'strike'],
-        ['blockquote', 'code-block'],
-        [{ header: 1 }, { header: 2 }],
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'blockquote'],
         [{ list: 'ordered' }, { list: 'bullet' }],
-        [{ script: 'sub' }, { script: 'super' }],
-        [{ indent: '-1' }, { indent: '+1' }],
-        [{ direction: 'rtl' }],
-        [{ size: ['small', false, 'large', 'huge'] }],
-        [{ header: [1, 2, 3, 4, 5, 6, false] }],
-        [{ color: [] }, { background: [] }],
-        [{ font: [] }],
-        [{ align: [] }],
-        ['clean'],
-        ['link']
+        ['link', 'clean']
       ]
     }),
     []
   );
 
-  // Load investment data on mount
+  // --- 1. Fetch Existing Data ---
   useEffect(() => {
     const fetchInvestment = async () => {
       try {
         const response = await axiosInstance.get(`/investments/${id}`);
-        const data: InvestmentData = response.data.data;
-        setInvestment(data);
+        const data = response.data.data;
 
-        // 3. UPDATE: Reset form with currencyType and other fields
+        // Reset form fields
         reset({
           title: data.title || '',
-          currencyType: data.currencyType || 'GBP', // Default to GBP if missing
+          currencyType: data.currencyType || 'GBP',
           amountRequired: data.amountRequired || 0,
           investmentAmount: data.investmentAmount || 0,
-          adminCost: data.adminCost || 0
+          adminCost: data.adminCost || 0,
+          projectDuration: data.projectDuration || 1, // Default if missing
+          installmentNumber: data.installmentNumber || 1 // Default if missing
         });
 
+        // Set rich text
         setDetails(data.details || '');
 
+        // Set Image
         if (data.image) {
-          setImagePreview(data.image);
+          setExistingImage(data.image);
         }
 
-        if (data.documents) {
-          const formattedDocs = data.documents.map((doc, index) => ({
-            id: `existing-${index}`,
-            title: doc.title,
-            file: null,
-            size: 'N/A'
-          }));
+        // Set Documents
+        if (data.documents && Array.isArray(data.documents)) {
+          const formattedDocs = data.documents.map(
+            (doc: any, index: number) => ({
+              id: `existing-${index}`,
+              title: doc.title,
+              file: null,
+              size: 'N/A',
+              isExisting: true
+            })
+          );
           setDocuments(formattedDocs);
         }
       } catch (error) {
@@ -222,121 +218,84 @@ export default function EditInvestment() {
       }
     };
 
-    fetchInvestment();
+    if (id) fetchInvestment();
   }, [id, reset, toast, navigate]);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  // --- Handlers ---
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: 'File too large',
-          description: 'Please select an image smaller than 5MB',
-          variant: 'destructive'
-        });
-        return;
-      }
+      if (file.size > 5 * 1024 * 1024)
+        return toast({ title: 'File too large', variant: 'destructive' });
       setFeaturedImage(file);
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
+      reader.onload = (e) => setImagePreview(e.target?.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  const handleRemoveImage = () => {
-    setFeaturedImage(null);
-    setImagePreview(null);
-  };
-
-  const handleDocumentUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: 'File too large',
-          description: 'Please select a document smaller than 5MB',
-          variant: 'destructive'
-        });
-        return;
-      }
-      setNewDocument((prev) => ({
+  const handleDocumentAdd = () => {
+    if (newDocument.file && newDocument.title) {
+      setDocuments((prev) => [
         ...prev,
-        file,
-        title: prev.title || file.name.replace(/\.[^/.]+$/, '')
-      }));
-    }
-  };
-
-  const handleAddDocument = () => {
-    if (newDocument.file && newDocument.title.trim()) {
-      const document: Document = {
-        id: Date.now().toString(),
-        title: newDocument.title.trim(),
-        file: newDocument.file,
-        size: (newDocument.file.size / 1024).toFixed(1) + ' KB'
-      };
-      setDocuments((prev) => [...prev, document]);
+        {
+          id: Date.now().toString(),
+          title: newDocument.title,
+          file: newDocument.file!,
+          size: (newDocument.file!.size / 1024).toFixed(0) + ' KB',
+          isExisting: false
+        }
+      ]);
       setNewDocument({ title: '', file: null });
       setDocumentDialogOpen(false);
-      toast({
-        title: 'Document added',
-        description: `${document.title} has been added successfully`
-      });
     }
-  };
-
-  const handleRemoveDocument = (id: string) => {
-    setDocuments((prev) => prev.filter((doc) => doc.id !== id));
-    toast({
-      title: 'Document removed',
-      description: 'Document has been removed from the project'
-    });
   };
 
   const onSubmit = async (data: InvestmentFormData) => {
-    if (!details.trim()) {
-      toast({
-        title: 'Details required',
-        description: 'Please provide project details',
+    if (!details.trim() || details === '<p><br></p>') {
+      return toast({
+        title: 'Validation Error',
+        description: 'Project details are required.',
         variant: 'destructive'
       });
-      return;
     }
 
     setIsSubmitting(true);
+    const interval = setInterval(
+      () => setUploadProgress((prev) => Math.min(prev + 10, 90)),
+      200
+    );
 
     try {
-      // 4. UPDATE: Include currencyType in payload
+      // Build payload matching Edit structure requirements
       const formData = {
-        action: "updateDetail",
-        title: data.title,
+        action: 'updateDetail',
+        ...data,
         details,
-        currencyType: data.currencyType, // Added
-        image: featuredImage || investment?.image || null,
-        amountRequired: data.amountRequired, // Should usually be included if edited
-        investmentAmount: data.investmentAmount,
-        adminCost: data.adminCost || 0,
-        documents: documents.map((doc) => ({
-          title: doc.title,
-          file: doc.file || null
+        // If featuredImage is null, backend usually keeps existing if we pass null/undefined appropriately
+        // Or we pass the existing URL if the backend logic requires it.
+        // Assuming typical logic: send file if new, send string/null if keeping.
+        image: featuredImage ? featuredImage : existingImage || null,
+
+        // Handle documents: We likely need to separate new files from existing structure
+        // This depends heavily on your backend. This assumes a standard structure.
+        documents: documents.map((d) => ({
+          title: d.title,
+          file: d.file || null // Send file object if new, null if existing
         }))
       };
 
       await axiosInstance.patch(`/investments/${id}`, formData);
 
-      toast({
-        title: 'Success',
-        description: 'Investment updated successfully'
-      });
-
-      navigate('/dashboard/investments');
+      clearInterval(interval);
+      setUploadProgress(100);
+      toast({ title: 'Success', description: 'Project updated successfully' });
+      setTimeout(() => navigate('/dashboard/investments'), 500);
     } catch (error) {
+      clearInterval(interval);
       toast({
-        title: 'Submission failed',
-        description:
-          'There was an error updating your project. Please try again.',
+        title: 'Error',
+        description: 'Failed to update project',
         variant: 'destructive'
       });
     } finally {
@@ -345,483 +304,401 @@ export default function EditInvestment() {
   };
 
   return (
-    <div className="min-h-screen bg-white p-4 md:p-8">
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Edit Investment Project
-          </h1>
-          <Button
-            className="gap-2 bg-theme text-white hover:bg-theme/90"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-            {/* Main Content */}
-            <div className="space-y-6 lg:col-span-2">
-              {/* Project Details */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-blue-600" />
-                    Project Details
-                  </CardTitle>
-                  <CardDescription>
-                    Update essential information about your investment project
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Project Title *</Label>
-                    <Input
-                      id="title"
-                      {...register('title')}
-                      placeholder="Enter project title"
-                      className={errors.title ? 'border-red-500' : ''}
-                    />
-                    {errors.title && (
-                      <p className="text-sm text-red-500">
-                        {errors.title.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="details">Project Details *</Label>
-                    <div className="min-h-[400px]">
-                      <ReactQuill
-                        value={details}
-                        onChange={setDetails}
-                        modules={quillModules}
-                        theme="snow"
-                        placeholder="Provide a detailed description of your investment project..."
-                        className="h-[350px]"
-                      />
-                    </div>
-                    <div className="flex justify-between py-4 text-sm text-slate-500">
-                      <span>
-                        {details.length === 0 ? 'Details are required' : ''}
-                      </span>
-                      <span>
-                        {details.replace(/<[^>]*>/g, '').length} characters
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Supporting Documents */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-purple-600" />
-                    Supporting Documents
-                  </CardTitle>
-                  <CardDescription>
-                    Upload business plans, financial statements, and other
-                    relevant documents
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Dialog
-                    open={documentDialogOpen}
-                    onOpenChange={setDocumentDialogOpen}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="h-12 w-full gap-2 border-dashed"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Add Document
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add Supporting Document</DialogTitle>
-                        <DialogDescription>
-                          Upload documents that support your investment project
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="documentTitle">Document Title</Label>
-                          <Input
-                            id="documentTitle"
-                            value={newDocument.title}
-                            onChange={(e) =>
-                              setNewDocument((prev) => ({
-                                ...prev,
-                                title: e.target.value
-                              }))
-                            }
-                            placeholder="Enter document title"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Upload File</Label>
-                          <div className="rounded-lg border-2 border-dashed border-slate-300 p-6 text-center">
-                            <input
-                              type="file"
-                              id="documentFile"
-                              className="hidden"
-                              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                              onChange={handleDocumentUpload}
-                            />
-                            <label
-                              htmlFor="documentFile"
-                              className="cursor-pointer"
-                            >
-                              {newDocument.file ? (
-                                <div className="space-y-2">
-                                  <FileText className="mx-auto h-8 w-8 text-green-600" />
-                                  <p className="text-sm font-medium">
-                                    {newDocument.file.name}
-                                  </p>
-                                  <p className="text-xs text-slate-500">
-                                    {(newDocument.file.size / 1024).toFixed(1)}{' '}
-                                    KB
-                                  </p>
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  <Upload className="mx-auto h-8 w-8 text-slate-400" />
-                                  <p className="text-sm text-slate-600">
-                                    Click to upload or drag and drop
-                                  </p>
-                                  <p className="text-xs text-slate-500">
-                                    PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX (max
-                                    10MB)
-                                  </p>
-                                </div>
-                              )}
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          onClick={handleAddDocument}
-                          disabled={
-                            !newDocument.file || !newDocument.title.trim()
-                          }
-                        >
-                          Add Document
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  {documents.length > 0 && (
-                    <ScrollArea className="h-32">
-                      <div className="space-y-2">
-                        {documents.map((doc) => (
-                          <div
-                            key={doc.id}
-                            className="flex items-center justify-between rounded-lg bg-slate-50 p-3"
-                          >
-                            <div className="flex items-center gap-3">
-                              <FileText className="h-4 w-4 text-slate-500" />
-                              <div>
-                                <p className="text-sm font-medium">
-                                  {doc.title}
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                  {doc.size}
-                                </p>
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveDocument(doc.id)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Financial Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Coins className="h-5 w-5 text-green-600" />
-                    Financial Information
-                  </CardTitle>
-                  <CardDescription>
-                    Set your funding requirements and financial details
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
-                    {/* Currency Selection Field (New) */}
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="currencyType">Currency *</Label>
-                      <Controller
-                        name="currencyType"
-                        control={control}
-                        render={({ field }) => (
-                          <Select
-                            {...field}
-                            options={currencyOptions}
-                            value={currencyOptions.find(c => c.value === field.value)}
-                            onChange={(val) => field.onChange(val?.value)}
-                            placeholder="Select Currency"
-                            className="react-select-container"
-                            classNamePrefix="react-select"
-                            styles={{
-                              control: (base) => ({
-                                ...base,
-                                borderColor: errors.currencyType ? 'red' : base.borderColor,
-                              })
-                            }}
-                          />
-                        )}
-                      />
-                      {errors.currencyType && (
-                        <p className="text-sm text-red-500">
-                          {errors.currencyType.message}
-                        </p>
-                      )}
-                    </div>
-                    
-                    {/* Amount Required */}
-                    <div className="space-y-2">
-                      <Label htmlFor="amountRequired">Amount Required *</Label>
-                      <div className="relative">
-                        {/* Switched to generic icon since currency can change */}
-                        <Input
-                          id="amountRequired"
-                          type="number"
-                          disabled
-                          {...register('amountRequired', {
-                            valueAsNumber: true
-                          })}
-                          placeholder="0"
-                          className={` ${
-                            errors.amountRequired ? 'border-red-500' : ''
-                          }`}
-                        />
-                      </div>
-                      {errors.amountRequired && (
-                        <p className="text-sm text-red-500">
-                          {errors.amountRequired.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Admin Cost */}
-                    <div className="space-y-2">
-                      <Label htmlFor="adminCost">Admin Cost %</Label>
-                      <div className="relative">
-                        <Input
-                          id="adminCost"
-                          type="number"
-                          {...register('adminCost', { valueAsNumber: true })}
-                          placeholder="0"
-                          className="pr-10"
-                        />
-                      </div>
-                    </div>
-
-                    {/* 6. UPDATE: Project Amount Input */}
-                    <div className="space-y-2">
-                      <Label htmlFor="investmentAmount">Project Amount</Label>
-                      <div className="relative">
-                        <Input
-                          id="investmentAmount"
-                          type="number"
-                          {...register('investmentAmount', { valueAsNumber: true })}
-                          placeholder="0"
-                          className={` ${errors.investmentAmount ? 'border-red-500' : ''}`}
-                        />
-                      </div>
-                      {errors.investmentAmount && (
-                        <p className="text-sm text-red-500">
-                          {errors.investmentAmount.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* 7. UPDATE: Dynamic Due Amount Input */}
-                    <div className="space-y-2">
-                      <Label htmlFor="dueAmount">Due Amount (Calculated)</Label>
-                      <div className="relative">
-                        <Calculator className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                        <Input
-                          id="dueAmount"
-                          type="text"
-                          value={formatCurrency(dueAmount)}
-                          disabled
-                          className="pl-10 bg-slate-50 font-semibold text-slate-700"
-                        />
-                      </div>
-                    </div>
-
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Featured Image */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ImageIcon className="h-5 w-5 text-orange-600" />
-                    Featured Image
-                  </CardTitle>
-                  <CardDescription>
-                    Upload a compelling image for your project
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="rounded-lg border-2 border-dashed border-slate-300 p-4">
-                      <input
-                        type="file"
-                        id="featuredImage"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                      />
-                      <label htmlFor="featuredImage" className="cursor-pointer">
-                        {imagePreview ? (
-                          <div className="relative">
-                            <img
-                              src={imagePreview}
-                              alt="Preview"
-                              className="h-48 w-full rounded-lg object-cover"
-                            />
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              className="absolute right-2 top-2"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleRemoveImage();
-                              }}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : investment?.image ? (
-                          <div className="relative">
-                            <img
-                              src={investment.image}
-                              alt="Current"
-                              className="h-48 w-full rounded-lg object-cover"
-                            />
-                            <p className="mt-2 text-center text-xs text-gray-500">
-                              Current Image (Click to Change)
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="py-8 text-center">
-                            <ImageIcon className="mx-auto mb-4 h-12 w-12 text-slate-400" />
-                            <p className="mb-2 text-sm text-slate-600">
-                              Click to upload image
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              JPG, PNG, WEBP up to 5MB
-                            </p>
-                          </div>
-                        )}
-                      </label>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* 8. UPDATE: Project Summary */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Project Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Currency:</span>
-                        <span className="font-medium">
-                            {watchedValues.currencyType || 'Not selected'}
-                        </span>
-                    </div>
-
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Amount Required:</span>
-                      <span className="font-medium">
-                        {watchedValues.amountRequired
-                          ? formatCurrency(watchedValues.amountRequired)
-                          : formatCurrency(0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Admin Cost:</span>
-                      <span className="font-medium">
-                        {watchedValues.adminCost
-                          ? `%${watchedValues.adminCost}`
-                          : '%0'}
-                      </span>
-                    </div>
-
-                    {/* Added Project Amount Row */}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Project Amount:</span>
-                      <span className="font-medium text-blue-600">
-                        {watchedValues.investmentAmount
-                          ? formatCurrency(watchedValues.investmentAmount)
-                          : formatCurrency(0)}
-                      </span>
-                    </div>
-
-                    {/* Added Due Amount Row */}
-                    <div className="flex justify-between text-sm border-t pt-2">
-                      <span className="text-slate-600 font-semibold">Due Amount:</span>
-                      <span className="font-bold text-green-600">
-                        {formatCurrency(dueAmount)}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between text-sm pt-2">
-                      <span className="text-slate-600">Documents:</span>
-                      <span className="font-medium">{documents.length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Image:</span>
-                      <span className="font-medium">
-                        {featuredImage || investment?.image
-                          ? 'Uploaded'
-                          : 'None'}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+    <div className="">
+      <div className="mx-auto space-y-8">
+        {/* Top Header */}
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              Edit Investment Project
+            </h1>
+            <p className="text-slate-500">
+              Update the details and financials for this opportunity.
+            </p>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end">
+          <div className="flex items-center gap-2">
             <Button
-              type="submit"
+              variant="outline"
+              onClick={() => navigate(-1)}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" /> Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit(onSubmit)}
               disabled={isSubmitting}
               className="bg-theme text-white hover:bg-theme/90"
             >
-              <Save className="h-4 w-4" />
-              {isSubmitting ? 'Updating...' : 'Update Project'}
+              {isSubmitting ? (
+                <span className="animate-spin">⏳</span>
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              {isSubmitting ? 'Saving...' : 'Update Project'}
             </Button>
+          </div>
+        </div>
+
+        {isSubmitting && (
+          <Progress value={uploadProgress} className="h-1 w-full" />
+        )}
+
+        <form className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          {/* LEFT COLUMN: Main Content */}
+          <div className="space-y-6 lg:col-span-2">
+            {/* 1. Basic Details */}
+            <Card className="border-none shadow-sm ring-1 ring-slate-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <LayoutDashboard className="h-5 w-5 text-blue-600" />
+                  Project Essentials
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Title Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="title">
+                    Project Title <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="title"
+                    {...register('title')}
+                    placeholder="e.g. Urban Real Estate Fund 2024"
+                    className={`py-6 text-lg ${errors.title ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  />
+                  {errors.title && (
+                    <p className="text-sm font-medium text-red-500">
+                      {errors.title.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Details Input */}
+                <div className="space-y-2">
+                  <Label>
+                    Detailed Description <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="prose-sm">
+                    <ReactQuill
+                      theme="snow"
+                      value={details}
+                      onChange={setDetails}
+                      modules={quillModules}
+                      className="mb-12 h-64"
+                      placeholder="Describe the investment opportunity..."
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 2. Documents */}
+            <Card className="border-none shadow-sm ring-1 ring-slate-200">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <FileText className="h-5 w-5 text-orange-600" />
+                    Documentation
+                  </CardTitle>
+                  <CardDescription>
+                    Attach legal documents and brochures.
+                  </CardDescription>
+                </div>
+                <Dialog
+                  open={documentDialogOpen}
+                  onOpenChange={setDocumentDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="secondary" size="sm" className="gap-2">
+                      <Plus className="h-4 w-4" /> Add File
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Upload Document</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <Input
+                        placeholder="Document Title"
+                        value={newDocument.title}
+                        onChange={(e) =>
+                          setNewDocument((p) => ({
+                            ...p,
+                            title: e.target.value
+                          }))
+                        }
+                      />
+                      <Input
+                        type="file"
+                        onChange={(e) =>
+                          setNewDocument((p) => ({
+                            ...p,
+                            file: e.target.files?.[0] || null
+                          }))
+                        }
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleDocumentAdd}>Attach</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {documents.length === 0 ? (
+                  <div className="rounded-lg border-2 border-dashed py-8 text-center text-sm text-slate-400">
+                    No documents attached yet.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {documents.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between rounded border bg-slate-50 p-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="rounded bg-white p-2 shadow-sm">
+                            <FileText className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-slate-700">
+                              {doc.title}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {doc.isExisting ? 'Existing File' : doc.size}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            setDocuments((d) =>
+                              d.filter((x) => x.id !== doc.id)
+                            )
+                          }
+                        >
+                          <X className="h-4 w-4 text-slate-400" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* RIGHT COLUMN: Configuration Sidebar */}
+          <div className="space-y-6">
+            {/* 4. Project Structure */}
+            <Card className="border-none shadow-sm ring-1 ring-slate-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Layers className="h-4 w-4 text-purple-600" />
+                  Structure
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Duration Input */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-500">
+                      Project Duration (Years){' '}
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <CalendarClock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Input
+                        type="number"
+                        {...register('projectDuration')}
+                        className={`pl-9 font-medium ${errors.projectDuration ? 'border-red-500' : ''}`}
+                        placeholder="e.g. 5"
+                      />
+                    </div>
+                    {errors.projectDuration && (
+                      <p className="text-xs text-red-500">
+                        {errors.projectDuration.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Installments Input */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-500">
+                      Installments <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Layers className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Input
+                        type="number"
+                        {...register('installmentNumber')}
+                        className={`pl-9 font-medium ${errors.installmentNumber ? 'border-red-500' : ''}`}
+                        placeholder="e.g. 12"
+                      />
+                    </div>
+                    {errors.installmentNumber && (
+                      <p className="text-xs text-red-500">
+                        {errors.installmentNumber.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 5. Financials */}
+            <Card className="border-none shadow-sm ring-1 ring-slate-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Wallet className="h-4 w-4 text-green-600" />
+                  Financials
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Currency Select */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Currency <span className="text-red-500">*</span>
+                  </Label>
+                  <Controller
+                    name="currencyType"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        options={currencyOptions}
+                        value={currencyOptions.find(
+                          (c) => c.value === field.value
+                        )}
+                        onChange={(val) => field.onChange(val?.value)}
+                        styles={{
+                          control: (base) => ({
+                            ...base,
+                            borderColor: errors.currencyType
+                              ? '#ef4444'
+                              : '#e2e8f0',
+                            boxShadow: 'none'
+                          })
+                        }}
+                      />
+                    )}
+                  />
+                  {errors.currencyType && (
+                    <p className="text-xs text-red-500">
+                      {errors.currencyType.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Amount Required (DISABLED) */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-500">
+                      Required Amount
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-sm font-semibold text-slate-400">
+                        {currentSymbol}
+                      </span>
+                      <Input
+                        type="number"
+                        disabled
+                        {...register('amountRequired')}
+                        className={`cursor-not-allowed bg-slate-100 pl-12 text-slate-500 ${errors.amountRequired ? 'border-red-500' : ''}`}
+                      />
+                    </div>
+                    {errors.amountRequired && (
+                      <p className="text-xs text-red-500">
+                        {errors.amountRequired.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Admin Cost */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-500">
+                      Admin Fee (%)
+                    </Label>
+                    <Input type="number" {...register('adminCost')} />
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Total Value */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-500">
+                    Project Amount <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-sm font-semibold text-slate-400">
+                      {currentSymbol}
+                    </span>
+                    <Input
+                      type="number"
+                      {...register('investmentAmount')}
+                      className={`bg-slate-50 pl-12 font-medium ${errors.investmentAmount ? 'border-red-500' : ''}`}
+                    />
+                  </div>
+                  {errors.investmentAmount && (
+                    <p className="text-xs text-red-500">
+                      {errors.investmentAmount.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Calculation Preview */}
+                <div className="space-y-3 rounded-lg bg-slate-900 p-4 text-white">
+                  <div className="flex justify-between text-xs text-slate-400">
+                    <span>Due Amount</span>
+                    <Calculator className="h-3 w-3" />
+                  </div>
+                  <div className="text-2xl font-bold tracking-tight">
+                    {formatMoney(dueAmount)}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 3. Featured Image */}
+            <Card className="overflow-hidden border-none shadow-sm ring-1 ring-slate-200">
+              <div className="group relative h-48 bg-slate-100">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : existingImage ? (
+                  <img
+                    src={existingImage}
+                    alt="Current"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center text-slate-400">
+                    <ImageIcon className="mb-2 h-8 w-8" />
+                    <span className="text-sm font-medium">No Cover Image</span>
+                  </div>
+                )}
+
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                  <label className="cursor-pointer">
+                    <span className="rounded-md bg-white px-4 py-2 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50">
+                      {imagePreview || existingImage
+                        ? 'Change Image'
+                        : 'Upload Image'}
+                    </span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                </div>
+              </div>
+            </Card>
           </div>
         </form>
       </div>
