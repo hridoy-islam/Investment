@@ -1,24 +1,11 @@
 import { useEffect, useState } from 'react';
-import {
-  Plus,
-  MoveLeft,
-} from 'lucide-react';
+import { Plus, MoveLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
 import axiosInstance from '@/lib/axios';
 import { useToast } from '@/components/ui/use-toast';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
 import { Input } from '@/components/ui/input';
 import { DataTablePagination } from '@/components/shared/data-table-pagination';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -29,27 +16,37 @@ import {
 import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import moment from 'moment';
+import { InvestmentCard } from './components/investment-card';
+
+interface Investment {
+  _id: string;
+  title: string;
+  image: string | null;
+  details: string;
+  amountRequired: number;
+  investmentAmount: number;
+  adminCost: number;
+  status: 'active' | 'block';
+  currencyType: string;
+  saleAmount?: number;
+  isCapitalRaise: boolean;
+  documents: any[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function InvestmentPage() {
-  const [investments, setInvestments] = useState<any>([]);
+  const [investments, setInvestments] = useState<Investment[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [editingInvestment, setEditingInvestment] = useState<any>();
-  const [selectedAmountRequired, setSelectedAmountRequired] =
-    useState<number>(0);
-    
-  // Currency State
+  const [selectedAmountRequired, setSelectedAmountRequired] = useState<number>(0);
   const [selectedCurrency, setSelectedCurrency] = useState<string>('GBP');
 
   // Raise Capital Dialog States
   const [raiseCapitalDialogOpen, setRaiseCapitalDialogOpen] = useState(false);
-  const [selectedInvestmentId, setSelectedInvestmentId] = useState<
-    string | null
-  >(null);
+  const [selectedInvestmentId, setSelectedInvestmentId] = useState<string | null>(null);
   const [raiseAmount, setRaiseAmount] = useState<number | ''>('');
   const [raiseLoading, setRaiseLoading] = useState(false);
-  const [selectedCurrentAmountRequired, setSelectedCurrentAmountRequired] =
-    useState<number>(0);
+  const [selectedCurrentAmountRequired, setSelectedCurrentAmountRequired] = useState<number>(0);
   const [selectedProjectName, setSelectedProjectName] = useState('');
 
   // Set Sale Price Dialog States
@@ -78,12 +75,11 @@ export default function InvestmentPage() {
         maximumFractionDigits: 2,
       }).format(amount);
     } catch (error) {
-      // Fallback if currency code is invalid
       return `${currencyCode} ${amount.toFixed(2)}`;
     }
   };
 
-  const fetchData = async (page, limit, searchTerm = '') => {
+  const fetchData = async (page: number, limit: number, searchTerm = '') => {
     try {
       setInitialLoading(true);
       const response = await axiosInstance.get(`/investments`, {
@@ -110,7 +106,7 @@ export default function InvestmentPage() {
     fetchData(currentPage, entriesPerPage, searchTerm);
   };
 
-  const handleStatusChange = async (id, status) => {
+  const handleStatusChange = async (id: string, status: boolean) => {
     try {
       const updatedStatus = status ? 'active' : 'block';
       await axiosInstance.patch(`/investments/${id}`, {
@@ -130,18 +126,29 @@ export default function InvestmentPage() {
     }
   };
 
-  const handleEdit = (data) => {
-    setEditingInvestment(data);
+  const handleEdit = (data: Investment) => {
     navigate(`/dashboard/investments/edit/${data._id}`);
   };
 
+  const handleViewDetails = (id: string) => {
+    navigate(`/dashboard/investments/view/${id}`);
+  };
+
+  const handleViewInvestors = (id: string) => {
+    navigate(`/dashboard/investments/participant/${id}`);
+  };
+
+  const handleViewProjectLog = (id: string) => {
+    navigate(`/dashboard/investments/transactions/${id}`);
+  };
+
   // Raise Capital Handlers
-  const handleRaiseCapitalClick = (investment) => {
+  const handleRaiseCapitalClick = (investment: Investment) => {
     setSelectedInvestmentId(investment._id);
     setRaiseAmount('');
     setSelectedCurrentAmountRequired(investment.amountRequired || 0);
     setSelectedProjectName(investment.title || '');
-    setSelectedCurrency(investment.currencyType || 'GBP'); // Set currency
+    setSelectedCurrency(investment.currencyType || 'GBP');
     setRaiseCapitalDialogOpen(true);
   };
 
@@ -191,12 +198,12 @@ export default function InvestmentPage() {
   };
 
   // Set Sale Price Handlers
-  const handleSetSalePriceClick = (investment) => {
+  const handleSetSalePriceClick = (investment: Investment) => {
     setSelectedInvestmentId(investment._id);
     setSalePrice('');
     setSelectedAmountRequired(investment.amountRequired || 0);
     setSelectedProjectName(investment.title || '');
-    setSelectedCurrency(investment.currencyType || 'GBP'); // Set currency
+    setSelectedCurrency(investment.currencyType || 'GBP');
     setSalePriceDialogOpen(true);
   };
 
@@ -241,46 +248,60 @@ export default function InvestmentPage() {
       setSalePriceLoading(false);
     }
   };
-  const calculateDueAmount = (inv) => {
-    const required = inv.amountRequired || 0;
-    const investment = inv.investmentAmount || 0;
-    return investment - required;
-  };
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-row items-center gap-4">
-          <h1 className="text-2xl font-semibold">Project List</h1>
-          <div className="flex items-center space-x-4">
-            <Input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by project name"
-              className="h-8 max-w-[400px]"
-            />
-            <Button
-              onClick={handleSearch}
-              size="sm"
-              className="min-w-[100px] border-none bg-theme text-white hover:bg-theme/90"
-            >
-              Search
-            </Button>
+    <div className="space-y-6">
+      {/* Header + Search (old style, adapted to new UI) */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        {/* Left: Title + Search */}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <h1 className="text-3xl font-bold text-gray-900">Project List</h1>
+
+              {/* search bar layout */}
+              <div className="flex items-center gap-3">
+                <Input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSearch();
+                  }}
+                  placeholder="Search by project name"
+                  className="h-8 w-full sm:w-[320px] lg:w-[400px]"
+                />
+                <Button
+                  onClick={handleSearch}
+                  size="sm"
+                  className="min-w-[100px] border-none bg-theme text-white hover:bg-theme/90"
+                >
+                  Search
+                </Button>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600">
+              Manage and track your investment projects
+            </p>
           </div>
         </div>
-        <div className="flex flex-row items-center gap-4">
+
+        {/* Right: Actions */}
+        <div className="flex flex-wrap items-center gap-3 lg:pt-1">
           <Button
             className="border-none bg-theme text-white hover:bg-theme/90"
-            size={'sm'}
-            onClick={() => navigate('/dashboard')}
+            size="sm"
+            onClick={() => navigate("/dashboard")}
           >
             <MoveLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
+
           <Button
             className="border-none bg-theme text-white hover:bg-theme/90"
-            size={'sm'}
-            onClick={() => navigate('/dashboard/investments/new')}
+            size="sm"
+            onClick={() => navigate("/dashboard/investments/new")}
           >
             <Plus className="mr-2 h-4 w-4" />
             New Project
@@ -288,156 +309,57 @@ export default function InvestmentPage() {
         </div>
       </div>
 
-      <div className="rounded-md bg-white p-4 shadow-2xl">
+
+      {/* Projects Grid */}
+      <div className="rounded-lg bg-white p-6 shadow-sm">
         {initialLoading ? (
-          <div className="flex justify-center py-6">
+          <div className="flex justify-center py-12">
             <BlinkingDots size="large" color="bg-theme" />
           </div>
         ) : investments.length === 0 ? (
-          <div className="flex justify-center py-6 text-gray-500">
-            No records found.
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="mb-4 rounded-full bg-gray-100 p-6">
+              <Plus className="h-12 w-12 text-gray-400" />
+            </div>
+            <h3 className="mb-2 text-lg font-semibold text-gray-900">
+              No projects found
+            </h3>
+            <p className="mb-6 text-sm text-gray-600">
+              Get started by creating your first investment project
+            </p>
+            <Button
+              className="border-none bg-theme text-white hover:bg-theme/90"
+              onClick={() => navigate('/dashboard/investments/new')}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Project
+            </Button>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[30vw]">Project Name</TableHead>
-                <TableHead>Investment Amount</TableHead>
-                <TableHead>Admin Cost</TableHead>
-                <TableHead>Due Amount</TableHead>
-                <TableHead className="text-center">Sale/CMV</TableHead>
-                <TableHead className="text-center">Raise Capital</TableHead>
+          <>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {investments.map((investment) => (
+                <InvestmentCard
+                  key={investment._id}
+                  investment={investment}
+                  onViewDetails={handleViewDetails}
+                  formatCurrency={formatCurrency}
+                />
+              ))}
+            </div>
 
-                <TableHead className="text-center">Project Log</TableHead>
-                <TableHead className="text-center">Investors</TableHead>
-                <TableHead className="text-center">Detail</TableHead>
-                <TableHead className="text-center">Edit</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {investments.map((investment) => {
-                const due = calculateDueAmount(investment);
-                const currency = investment.currencyType || 'GBP';
-
-                return (
-                  <TableRow key={investment._id}>
-                    <TableCell>{investment.title}</TableCell>
-                    <TableCell>
-                      {investment?.amountRequired
-                        ? formatCurrency(investment.amountRequired, currency)
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      {`${investment?.adminCost?.toFixed(2)}%` || '-'}
-                    </TableCell>
-                    <TableCell>
-                      {formatCurrency(due, currency)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button
-                        size="sm"
-                        onClick={() => handleSetSalePriceClick(investment)}
-                        className="bg-red-600 text-white hover:bg-red-600/90"
-                      >
-                        Sale/CMV
-                      </Button>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button
-                        size="sm"
-                        onClick={() => handleRaiseCapitalClick(investment)}
-                        className="hover:bg-indigo/90 bg-emerald-600 text-white"
-                      >
-                        Raise Capital
-                      </Button>
-                    </TableCell>
-
-                    <TableCell className="text-center">
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          navigate(
-                            `/dashboard/investments/transactions/${investment._id}`
-                          )
-                        }
-                        className="hover:bg-indigo/90 bg-lime-600 text-white"
-                      >
-                        Project Log
-                      </Button>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          navigate(
-                            `/dashboard/investments/participant/${investment._id}`
-                          )
-                        }
-                        className="bg-sky-600 text-white hover:bg-sky-600/90"
-                      >
-                        Investors
-                      </Button>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button
-                        variant="ghost"
-                        className="border-none bg-rose-500 text-white hover:bg-rose-500/90"
-                        size="sm"
-                        onClick={() =>
-                          navigate(
-                            `/dashboard/investments/view/${investment._id}`
-                          )
-                        }
-                      >
-                        Details
-                      </Button>
-                    </TableCell>
-                    <TableCell className="flex flex-row items-center justify-center gap-2 text-center">
-                      <Button
-                        variant="ghost"
-                        className="border-none bg-theme text-white hover:bg-theme/90"
-                        size="sm"
-                        onClick={() => handleEdit(investment)}
-                      >
-                        Edit
-                      </Button>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex flex-row items-center gap-1">
-                        <Switch
-                          checked={investment.status === 'active'}
-                          onCheckedChange={(checked) =>
-                            handleStatusChange(investment._id, checked)
-                          }
-                          className="mx-auto"
-                        />
-                        <Badge
-                          className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                            investment.status === 'active'
-                              ? 'bg-green-100 text-green-800 hover:bg-green-100'
-                              : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
-                          }`}
-                        >
-                          {investment.status === 'active'
-                            ? 'Active'
-                            : 'Inactive'}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+            {/* Pagination */}
+            <div className="mt-6 border-t pt-4">
+              <DataTablePagination
+                pageSize={entriesPerPage}
+                setPageSize={setEntriesPerPage}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          </>
         )}
-        <DataTablePagination
-          pageSize={entriesPerPage}
-          setPageSize={setEntriesPerPage}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
       </div>
 
       {/* Raise Capital Dialog */}
@@ -450,11 +372,10 @@ export default function InvestmentPage() {
             <DialogTitle>Raise Capital</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Project Name */}
             <div className="text-sm font-medium text-gray-700">
               Date:{' '}
               <span className="font-semibold">
-                <span>{moment().format('DD MMM YYYY')}</span>
+                {moment().format('DD MMM YYYY')}
               </span>
             </div>
             <div className="text-sm font-medium text-gray-700">
@@ -462,7 +383,6 @@ export default function InvestmentPage() {
               <span className="font-semibold">{selectedProjectName}</span>
             </div>
 
-            {/* Current Investment Amount */}
             <div className="text-sm font-medium text-gray-700">
               Current Investment Amount:{' '}
               <span className="font-semibold">
@@ -470,7 +390,6 @@ export default function InvestmentPage() {
               </span>
             </div>
 
-            {/* Only show updated amount if raiseAmount is valid */}
             {typeof raiseAmount === 'number' && raiseAmount > 0 && (
               <div className="text-sm font-medium text-gray-700">
                 Updated Investment Amount:{' '}
@@ -480,9 +399,10 @@ export default function InvestmentPage() {
               </div>
             )}
 
-            {/* Raise Amount Input */}
             <div className="space-y-2">
-              <Label htmlFor="amountRequired">Raise Amount ({selectedCurrency})</Label>
+              <Label htmlFor="amountRequired">
+                Raise Amount ({selectedCurrency})
+              </Label>
               <Input
                 id="amountRequired"
                 type="number"
@@ -534,7 +454,7 @@ export default function InvestmentPage() {
             <div className="text-sm font-medium text-gray-700">
               Date:{' '}
               <span className="font-semibold">
-                <span>{moment().format('DD MMM YYYY')}</span>
+                {moment().format('DD MMM YYYY')}
               </span>
             </div>
             <div className="text-sm font-medium text-gray-700">
@@ -558,7 +478,9 @@ export default function InvestmentPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="salePrice">Sale Price ({selectedCurrency})</Label>
+              <Label htmlFor="salePrice">
+                Sale Price ({selectedCurrency})
+              </Label>
               <Input
                 id="salePrice"
                 type="number"
