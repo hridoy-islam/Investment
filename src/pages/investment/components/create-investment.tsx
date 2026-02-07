@@ -61,14 +61,12 @@ const investmentSchema = z.object({
     .number({ invalid_type_error: 'Installments are required' })
     .min(1, 'At least 1 installment is required'),
 
-  // Financial Validation
-  amountRequired: z.coerce
-    .number({ invalid_type_error: 'Amount is required' })
-    .positive('Amount must be greater than 0'),
-  investmentAmount: z.coerce
-    .number({ invalid_type_error: 'Total Value is required' })
-    .min(0, 'Value cannot be negative')
-    .default(0),
+
+
+  projectAmount: z.coerce
+  .number({ invalid_type_error: 'Total Value is required' })
+  .int('Value must be a whole number')
+  .min(1, 'Value must be greater than 0'),
   adminCost: z.coerce
     .number()
     .min(0, 'Cannot be negative')
@@ -119,8 +117,8 @@ export default function CreateInvestmentProject() {
     defaultValues: {
       title: '',
       currencyType: 'GBP',
-      amountRequired: 0,
-      investmentAmount: 0,
+   
+      projectAmount: 0,
       adminCost: 0,
       projectDuration: undefined,
       installmentNumber: undefined
@@ -131,7 +129,7 @@ export default function CreateInvestmentProject() {
 
   // Calculations
   const dueAmount =
-    (watchedValues.investmentAmount || 0) - (watchedValues.amountRequired || 0);
+    (watchedValues.projectAmount || 0) - (watchedValues.amountRequired || 0);
   const currentSymbol =
     currencyOptions.find((c) => c.value === watchedValues.currencyType)
       ?.symbol || '£';
@@ -187,19 +185,19 @@ export default function CreateInvestmentProject() {
 
   const onSubmit = async (data: InvestmentFormData) => {
     // Custom validation for Rich Text Editor
-    if (!details.trim() || details === '<p><br></p>') {
-      return toast({
-        title: 'Validation Error',
-        description: 'Project details are required.',
-        variant: 'destructive'
-      });
-    }
+    // if (!details.trim() || details === '<p><br></p>') {
+    //   return toast({
+    //     title: 'Validation Error',
+    //     description: 'Project details are required.',
+    //     variant: 'destructive'
+    //   });
+    // }
 
     setIsSubmitting(true);
-    const interval = setInterval(
-      () => setUploadProgress((prev) => Math.min(prev + 10, 90)),
-      200
-    );
+    // const interval = setInterval(
+    //   () => setUploadProgress((prev) => Math.min(prev + 10, 90)),
+    //   200
+    // );
 
     try {
       const formData = {
@@ -211,15 +209,15 @@ export default function CreateInvestmentProject() {
 
       await axiosInstance.post('/investments', formData);
 
-      clearInterval(interval);
+      // clearInterval(interval);
       setUploadProgress(100);
       toast({ title: 'Success', description: 'Project created successfully' });
-      setTimeout(() => navigate('/dashboard/investments'), 500);
+      navigate(-1)
     } catch (error) {
-      clearInterval(interval);
+      // clearInterval(interval);
       toast({
         title: 'Error',
-        description: 'Failed to create project',
+        description: error?.response?.data?.message|| 'Failed to create project',
         variant: 'destructive'
       });
     } finally {
@@ -229,16 +227,14 @@ export default function CreateInvestmentProject() {
 
   return (
     <div className="">
-      <div className="mx-auto space-y-8">
+      <div className="mx-auto space-y-3">
         {/* Top Header */}
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">
               New Investment Project
             </h1>
-            <p className="text-slate-500">
-              Configure the details and financials for a new opportunity.
-            </p>
+           
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -267,7 +263,7 @@ export default function CreateInvestmentProject() {
           <Progress value={uploadProgress} className="h-1 w-full" />
         )}
 
-        <form className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <form className="grid grid-cols-1 gap-2 lg:grid-cols-3">
           {/* LEFT COLUMN: Main Content */}
           <div className="space-y-6 lg:col-span-2">
             {/* 1. Basic Details */}
@@ -300,7 +296,7 @@ export default function CreateInvestmentProject() {
                 {/* Details Input */}
                 <div className="space-y-2">
                   <Label>
-                    Detailed Description <span className="text-red-500">*</span>
+                    Detailed Description 
                   </Label>
                   <div className="prose-sm">
                     <ReactQuill
@@ -412,61 +408,7 @@ export default function CreateInvestmentProject() {
 
           {/* RIGHT COLUMN: Configuration Sidebar */}
           <div className="space-y-6">
-            {/* 4. Project Structure */}
-            <Card className="border-none shadow-sm ring-1 ring-slate-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Layers className="h-4 w-4 text-purple-600" />
-                  Structure
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Duration Input */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-slate-500">
-                      Project Duration (Years){' '}
-                      <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <CalendarClock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                      <Input
-                        type="number"
-                        {...register('projectDuration')}
-                        className={`pl-9 font-medium ${errors.projectDuration ? 'border-red-500' : ''}`}
-                        placeholder="e.g. 5"
-                      />
-                    </div>
-                    {errors.projectDuration && (
-                      <p className="text-xs text-red-500">
-                        {errors.projectDuration.message}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Installments Input */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-slate-500">
-                      Installments <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <Layers className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                      <Input
-                        type="number"
-                        {...register('installmentNumber')}
-                        className={`pl-9 font-medium ${errors.installmentNumber ? 'border-red-500' : ''}`}
-                        placeholder="e.g. 12"
-                      />
-                    </div>
-                    {errors.installmentNumber && (
-                      <p className="text-xs text-red-500">
-                        {errors.installmentNumber.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+         
 
             {/* 5. Financials */}
             <Card className="border-none shadow-sm ring-1 ring-slate-200">
@@ -516,7 +458,7 @@ export default function CreateInvestmentProject() {
                   {/* Amount Required */}
                   <div className="space-y-2">
                     <Label className="text-xs text-slate-500">
-                      Required Amount <span className="text-red-500">*</span>
+                      Project Amount <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-sm font-semibold text-slate-400">
@@ -524,13 +466,13 @@ export default function CreateInvestmentProject() {
                       </span>
                       <Input
                         type="number"
-                        {...register('amountRequired')}
-                        className={`pl-12 ${errors.amountRequired ? 'border-red-500' : ''}`}
+                        {...register('projectAmount')}
+                        className={`pl-12 ${errors.projectAmount ? 'border-red-500' : ''}`}
                       />
                     </div>
-                    {errors.amountRequired && (
+                    {errors.projectAmount && (
                       <p className="text-xs text-red-500">
-                        {errors.amountRequired.message}
+                        {errors.projectAmount.message}
                       </p>
                     )}
                   </div>
@@ -542,42 +484,54 @@ export default function CreateInvestmentProject() {
                     </Label>
                     <Input type="number" {...register('adminCost')} />
                   </div>
+                   <div className="space-y-2">
+                    <Label className="text-xs text-slate-500">
+                      Project Duration (Years){' '}
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <CalendarClock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Input
+                        type="number"
+                        {...register('projectDuration')}
+                        className={`pl-9 font-medium ${errors.projectDuration ? 'border-red-500' : ''}`}
+                        placeholder="e.g. 5"
+                      />
+                    </div>
+                    {errors.projectDuration && (
+                      <p className="text-xs text-red-500">
+                        {errors.projectDuration.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Installments Input */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-500">
+                      Installments <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Layers className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Input
+                        type="number"
+                        {...register('installmentNumber')}
+                        className={`pl-9 font-medium ${errors.installmentNumber ? 'border-red-500' : ''}`}
+                        placeholder="e.g. 12"
+                      />
+                    </div>
+                    {errors.installmentNumber && (
+                      <p className="text-xs text-red-500">
+                        {errors.installmentNumber.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <Separator />
+    
 
-                {/* Total Value */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-slate-500">
-                    Project Amount <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-sm font-semibold text-slate-400">
-                      {currentSymbol}
-                    </span>
-                    <Input
-                      type="number"
-                      {...register('investmentAmount')}
-                      className={`bg-slate-50 pl-12 font-medium ${errors.investmentAmount ? 'border-red-500' : ''}`}
-                    />
-                  </div>
-                  {errors.investmentAmount && (
-                    <p className="text-xs text-red-500">
-                      {errors.investmentAmount.message}
-                    </p>
-                  )}
-                </div>
+                
 
-                {/* Calculation Preview */}
-                <div className="space-y-3 rounded-lg bg-slate-900 p-4 text-white">
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>Due Amount</span>
-                    <Calculator className="h-3 w-3" />
-                  </div>
-                  <div className="text-2xl font-bold tracking-tight">
-                    {formatMoney(dueAmount)}
-                  </div>
-                </div>
+               
               </CardContent>
             </Card>
 

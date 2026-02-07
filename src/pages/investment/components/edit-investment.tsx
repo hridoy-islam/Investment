@@ -52,7 +52,7 @@ const investmentSchema = z.object({
     .max(100, 'Title cannot exceed 100 characters'),
   currencyType: z.string().min(1, 'Currency is required'),
 
-  // Structure Validation
+  // Structure & Financials
   projectDuration: z.coerce
     .number({ invalid_type_error: 'Duration is required' })
     .min(1, 'Duration must be at least 1 year'),
@@ -60,11 +60,7 @@ const investmentSchema = z.object({
     .number({ invalid_type_error: 'Installments are required' })
     .min(1, 'At least 1 installment is required'),
 
-  // Financial Validation
-  amountRequired: z.coerce
-    .number({ invalid_type_error: 'Amount is required' })
-    .positive('Amount must be greater than 0'),
-  investmentAmount: z.coerce
+  projectAmount: z.coerce
     .number({ invalid_type_error: 'Total Value is required' })
     .min(0, 'Value cannot be negative')
     .default(0),
@@ -80,7 +76,7 @@ type InvestmentFormData = z.infer<typeof investmentSchema>;
 interface DocumentData {
   id: string;
   title: string;
-  file?: File | null; // Null if existing, File if new
+  file?: File | null;
   size: string;
   isExisting?: boolean;
 }
@@ -99,6 +95,7 @@ export default function EditInvestment() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [paidAmount, setPaidAmount] = useState(0); // Store fetched paid amount
 
   // Media State
   const [featuredImage, setFeaturedImage] = useState<File | null>(null);
@@ -125,15 +122,13 @@ export default function EditInvestment() {
     control,
     formState: { errors },
     watch,
-    reset,
-    setValue
+    reset
   } = useForm<InvestmentFormData>({
     resolver: zodResolver(investmentSchema),
     defaultValues: {
       title: '',
       currencyType: 'GBP',
-      amountRequired: 0,
-      investmentAmount: 0,
+      projectAmount: 0,
       adminCost: 0,
       projectDuration: 0,
       installmentNumber: 0
@@ -143,8 +138,9 @@ export default function EditInvestment() {
   const watchedValues = watch();
 
   // Calculations
-  const dueAmount =
-    (watchedValues.investmentAmount || 0) - (watchedValues.amountRequired || 0);
+  // Logic: Due = Project Amount - Total Amount Paid
+  const dueAmount = (watchedValues.projectAmount || 0) - paidAmount;
+
   const currentSymbol =
     currencyOptions.find((c) => c.value === watchedValues.currencyType)
       ?.symbol || '£';
@@ -177,17 +173,18 @@ export default function EditInvestment() {
         const data = response.data.data;
 
         // Reset form fields
+        // Note: Checking both projectAmount and investmentAmount for backward compatibility
         reset({
           title: data.title || '',
           currencyType: data.currencyType || 'GBP',
-          amountRequired: data.amountRequired || 0,
-          investmentAmount: data.investmentAmount || 0,
+          projectAmount: data.projectAmount || 0,
           adminCost: data.adminCost || 0,
-          projectDuration: data.projectDuration || 1, // Default if missing
-          installmentNumber: data.installmentNumber || 1 // Default if missing
+          projectDuration: data.projectDuration || 1,
+          installmentNumber: data.installmentNumber || 1
         });
 
-        // Set rich text
+        // Set additional state
+        setPaidAmount(data.totalAmountPaid || 0);
         setDetails(data.details || '');
 
         // Set Image
@@ -252,50 +249,43 @@ export default function EditInvestment() {
   };
 
   const onSubmit = async (data: InvestmentFormData) => {
-    if (!details.trim() || details === '<p><br></p>') {
-      return toast({
-        title: 'Validation Error',
-        description: 'Project details are required.',
-        variant: 'destructive'
-      });
-    }
+    // if (!details.trim() || details === '<p><br></p>') {
+    //   return toast({
+    //     title: 'Validation Error',
+    //     description: 'Project details are required.',
+    //     variant: 'destructive'
+    //   });
+    // }
 
     setIsSubmitting(true);
-    const interval = setInterval(
-      () => setUploadProgress((prev) => Math.min(prev + 10, 90)),
-      200
-    );
+    // const interval = setInterval(
+    //   () => setUploadProgress((prev) => Math.min(prev + 10, 90)),
+    //   200
+    // );
 
     try {
-      // Build payload matching Edit structure requirements
       const formData = {
         action: 'updateDetail',
         ...data,
         details,
-        // If featuredImage is null, backend usually keeps existing if we pass null/undefined appropriately
-        // Or we pass the existing URL if the backend logic requires it.
-        // Assuming typical logic: send file if new, send string/null if keeping.
         image: featuredImage ? featuredImage : existingImage || null,
-
-        // Handle documents: We likely need to separate new files from existing structure
-        // This depends heavily on your backend. This assumes a standard structure.
         documents: documents.map((d) => ({
           title: d.title,
-          file: d.file || null // Send file object if new, null if existing
+          file: d.file || null
         }))
       };
 
       await axiosInstance.patch(`/investments/${id}`, formData);
 
-      clearInterval(interval);
+      // clearInterval(interval);
       setUploadProgress(100);
       toast({ title: 'Success', description: 'Project updated successfully' });
-      setTimeout(() => navigate('/dashboard/investments'), 500);
+      navigate(-1);
     } catch (error) {
-      clearInterval(interval);
+      // clearInterval(interval);
       toast({
         title: 'Error',
-        description: 'Failed to update project',
+        description: error?.response?.data?.message||'Failed to update project',
         variant: 'destructive'
       });
     } finally {
@@ -305,16 +295,13 @@ export default function EditInvestment() {
 
   return (
     <div className="">
-      <div className="mx-auto space-y-8">
+      <div className="mx-auto space-y-3">
         {/* Top Header */}
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">
               Edit Investment Project
             </h1>
-            <p className="text-slate-500">
-              Update the details and financials for this opportunity.
-            </p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -343,7 +330,7 @@ export default function EditInvestment() {
           <Progress value={uploadProgress} className="h-1 w-full" />
         )}
 
-        <form className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <form className="grid grid-cols-1 gap-2 lg:grid-cols-3">
           {/* LEFT COLUMN: Main Content */}
           <div className="space-y-6 lg:col-span-2">
             {/* 1. Basic Details */}
@@ -375,9 +362,7 @@ export default function EditInvestment() {
 
                 {/* Details Input */}
                 <div className="space-y-2">
-                  <Label>
-                    Detailed Description <span className="text-red-500">*</span>
-                  </Label>
+                  <Label>Detailed Description</Label>
                   <div className="prose-sm">
                     <ReactQuill
                       theme="snow"
@@ -490,63 +475,7 @@ export default function EditInvestment() {
 
           {/* RIGHT COLUMN: Configuration Sidebar */}
           <div className="space-y-6">
-            {/* 4. Project Structure */}
-            <Card className="border-none shadow-sm ring-1 ring-slate-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Layers className="h-4 w-4 text-purple-600" />
-                  Structure
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Duration Input */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-slate-500">
-                      Project Duration (Years){' '}
-                      <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <CalendarClock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                      <Input
-                        type="number"
-                        {...register('projectDuration')}
-                        className={`pl-9 font-medium ${errors.projectDuration ? 'border-red-500' : ''}`}
-                        placeholder="e.g. 5"
-                      />
-                    </div>
-                    {errors.projectDuration && (
-                      <p className="text-xs text-red-500">
-                        {errors.projectDuration.message}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Installments Input */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-slate-500">
-                      Installments <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <Layers className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                      <Input
-                        type="number"
-                        {...register('installmentNumber')}
-                        className={`pl-9 font-medium ${errors.installmentNumber ? 'border-red-500' : ''}`}
-                        placeholder="e.g. 12"
-                      />
-                    </div>
-                    {errors.installmentNumber && (
-                      <p className="text-xs text-red-500">
-                        {errors.installmentNumber.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 5. Financials */}
+            {/* 3. Financials */}
             <Card className="border-none shadow-sm ring-1 ring-slate-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -591,10 +520,10 @@ export default function EditInvestment() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Amount Required (DISABLED) */}
+                  {/* Project Amount */}
                   <div className="space-y-2">
                     <Label className="text-xs text-slate-500">
-                      Required Amount
+                      Project Amount <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-sm font-semibold text-slate-400">
@@ -602,14 +531,14 @@ export default function EditInvestment() {
                       </span>
                       <Input
                         type="number"
+                        {...register('projectAmount')}
+                        className={`pl-12 ${errors.projectAmount ? 'border-red-500' : ''}`}
                         disabled
-                        {...register('amountRequired')}
-                        className={`cursor-not-allowed bg-slate-100 pl-12 text-slate-500 ${errors.amountRequired ? 'border-red-500' : ''}`}
                       />
                     </div>
-                    {errors.amountRequired && (
+                    {errors.projectAmount && (
                       <p className="text-xs text-red-500">
-                        {errors.amountRequired.message}
+                        {errors.projectAmount.message}
                       </p>
                     )}
                   </div>
@@ -621,33 +550,53 @@ export default function EditInvestment() {
                     </Label>
                     <Input type="number" {...register('adminCost')} />
                   </div>
+
+                  {/* Duration Input */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-500">
+                      Duration (Years) <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <CalendarClock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Input
+                        type="number"
+                        {...register('projectDuration')}
+                        className={`pl-9 font-medium ${errors.projectDuration ? 'border-red-500' : ''}`}
+                        placeholder="e.g. 5"
+                      />
+                    </div>
+                    {errors.projectDuration && (
+                      <p className="text-xs text-red-500">
+                        {errors.projectDuration.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Installments Input */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-slate-500">
+                      Installments <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Layers className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Input
+                        type="number"
+                        {...register('installmentNumber')}
+                        className={`pl-9 font-medium ${errors.installmentNumber ? 'border-red-500' : ''}`}
+                        placeholder="e.g. 12"
+                      />
+                    </div>
+                    {errors.installmentNumber && (
+                      <p className="text-xs text-red-500">
+                        {errors.installmentNumber.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <Separator />
 
-                {/* Total Value */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-slate-500">
-                    Project Amount <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-sm font-semibold text-slate-400">
-                      {currentSymbol}
-                    </span>
-                    <Input
-                      type="number"
-                      {...register('investmentAmount')}
-                      className={`bg-slate-50 pl-12 font-medium ${errors.investmentAmount ? 'border-red-500' : ''}`}
-                    />
-                  </div>
-                  {errors.investmentAmount && (
-                    <p className="text-xs text-red-500">
-                      {errors.investmentAmount.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Calculation Preview */}
+                {/* Calculation Preview: Due = Project Amount - Paid Amount */}
                 <div className="space-y-3 rounded-lg bg-slate-900 p-4 text-white">
                   <div className="flex justify-between text-xs text-slate-400">
                     <span>Due Amount</span>
@@ -656,11 +605,17 @@ export default function EditInvestment() {
                   <div className="text-2xl font-bold tracking-tight">
                     {formatMoney(dueAmount)}
                   </div>
+                  <div className="flex justify-between border-t border-white/10 pt-2 text-xs text-slate-500">
+                    <span>Paid So Far:</span>
+                    <span className="font-medium text-emerald-400">
+                      {formatMoney(paidAmount)}
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* 3. Featured Image */}
+            {/* 4. Featured Image */}
             <Card className="overflow-hidden border-none shadow-sm ring-1 ring-slate-200">
               <div className="group relative h-48 bg-slate-100">
                 {imagePreview ? (

@@ -24,7 +24,7 @@ export default function AdminLayout({
   <div className="flex flex-1 overflow-hidden">
     <VerticalNav />
     
-    <main className="flex-1 overflow-y-auto px-4 py-6 ml-16">
+    <main className="flex-1 overflow-y-auto px-2 py-6 ml-16">
       {children}
     </main>
   </div>
