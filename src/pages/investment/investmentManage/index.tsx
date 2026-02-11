@@ -15,7 +15,8 @@ import {
   PlusCircle,
   Pencil,
   Filter,
-  X
+  X,
+  Banknote
 } from 'lucide-react';
 import {
   Card,
@@ -48,7 +49,6 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
-import { Checkbox } from '@/components/ui/checkbox';
 import axiosInstance from '@/lib/axios';
 import { format } from 'date-fns';
 import { BlinkingDots } from '@/components/shared/blinking-dots';
@@ -188,13 +188,9 @@ export default function InvestmentManagementPage() {
   const [installmentAmount, setInstallmentAmount] = useState<string>('');
   const [raiseAmount, setRaiseAmount] = useState<string>('');
   const [saleAmount, setSaleAmount] = useState<string>('');
-  
-  // Initialize as undefined to force selection
-  const [deductOutstanding, setDeductOutstanding] = useState<boolean | undefined>(undefined);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
- 
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([
     null,
     null
@@ -202,7 +198,6 @@ export default function InvestmentManagementPage() {
   const [historyStartDate, historyEndDate] = dateRange;
   const [selectedHistoryInvestor, setSelectedHistoryInvestor] =
     useState<SelectOption | null>(null);
-
 
   const isLoading = useMemo(
     () => Object.values(loadingStates).some((state) => state),
@@ -293,40 +288,54 @@ export default function InvestmentManagementPage() {
     };
   }, [transactions, participants]);
 
+  // --- SALE CALCULATIONS FOR MODAL ---
   const saleCalculations = useMemo(() => {
     if (!investment) return null;
 
     const saleVal = parseFloat(saleAmount) || 0;
     const projectAmount = investment.projectAmount || 0;
-    const totalPaid = investment.totalAmountPaid || 0;
-    const outstanding = Math.max(0, projectAmount - totalPaid);
-
-    // If undefined, we don't deduct (display logic handles visibility)
-    const intermediate = deductOutstanding ? saleVal - outstanding : saleVal;
-    const grossProfit = intermediate - totalPaid;
-    const adminFee =
-      grossProfit > 0 ? grossProfit * (investment.adminCost / 100) : 0;
+    
+    // Correct Calculation: Sale - Project Amount
+    const grossProfit = saleVal - projectAmount;
+    
+    // Admin Fee on Gross Profit
+    const adminFee = grossProfit > 0 ? grossProfit * (investment.adminCost / 100) : 0;
+    
     const netProfit = grossProfit - adminFee;
 
     return {
       projectAmount,
-      totalPaid,
-      outstanding,
-      intermediate,
       grossProfit,
       adminFee,
       netProfit
     };
-  }, [saleAmount, deductOutstanding, investment]);
+  }, [saleAmount, investment]);
+
+  // --- EXISTING SALE HISTORY (If sold) ---
+  const existingSaleStats = useMemo(() => {
+    if (!investment?.saleAmount) return null;
+
+    const saleVal = investment.saleAmount;
+    const projectAmount = investment.projectAmount || 0;
+    const grossProfit = saleVal - projectAmount;
+    const adminFee = grossProfit > 0 ? grossProfit * (investment.adminCost / 100) : 0;
+    const netProfit = grossProfit - adminFee;
+
+    return {
+      saleAmount: saleVal,
+      projectAmount,
+      grossProfit,
+      adminFee,
+      netProfit
+    };
+  }, [investment]);
 
   // Reset state when Sale modal opens/closes
   useEffect(() => {
     if (!isSaleOpen) {
       setSaleAmount('');
-      setDeductOutstanding(undefined);
     }
   }, [isSaleOpen]);
-
 
   // ==================== FETCH FUNCTIONS ====================
 
@@ -594,17 +603,12 @@ export default function InvestmentManagementPage() {
 
   const handleRecordSale = async () => {
     if (!saleAmount) return;
-    // Extra safety check for deductOutstanding if needed
-    if (saleCalculations?.outstanding && saleCalculations.outstanding > 0 && deductOutstanding === undefined) {
-      toast({ title: 'Please select who pays the outstanding amount', variant: 'destructive' });
-      return;
-    }
 
     setIsSubmitting(true);
     try {
       await axiosInstance.patch(`/investments/${id}`, {
         saleAmount: parseFloat(saleAmount),
-        deductOutstanding: !!deductOutstanding // Ensure boolean is sent
+        deductOutstanding: false // removed functionality, default to false
       });
       toast({ title: 'Success', description: 'Sale recorded successfully' });
       setIsSaleOpen(false);
@@ -717,7 +721,7 @@ export default function InvestmentManagementPage() {
           </Dialog>
 
           {/* Installment Button */}
-          <Dialog open={isInstallmentOpen} onOpenChange={setIsInstallmentOpen}>
+          {/* <Dialog open={isInstallmentOpen} onOpenChange={setIsInstallmentOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <Plus className="mr-2 h-4 w-4" />
@@ -768,7 +772,7 @@ export default function InvestmentManagementPage() {
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+          </Dialog> */}
 
           {/* Raise Capital Dialog */}
           <Dialog open={isRaiseOpen} onOpenChange={setIsRaiseOpen}>
@@ -863,129 +867,65 @@ export default function InvestmentManagementPage() {
                     onChange={(e) => setSaleAmount(e.target.value)}
                   />
                 </div>
-                
-                {/* Outstanding Payment Question */}
-                {saleCalculations && saleCalculations.outstanding > 0 && (
-                  <div className="mt-4 space-y-3 rounded-md border border-gray-300 p-3">
-                    <Label className="font-semibold text-sm">
-                      Please confirm who will pay the outstanding instalment for
-                      this project.
-                    </Label>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="buyer-pays"
-                          checked={deductOutstanding === true}
-                          onCheckedChange={(checked) => {
-                            if (checked) setDeductOutstanding(true);
-                          }}
-                        />
-                        <label
-                          htmlFor="buyer-pays"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Yes, the new buyer will pay
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="investor-pays"
-                          checked={deductOutstanding === false}
-                          onCheckedChange={(checked) => {
-                            if (checked) setDeductOutstanding(false);
-                          }}
-                        />
-                        <label
-                          htmlFor="investor-pays"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          No, the existing investor will pay
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
-                {/* Calculation Summary - only shown if no outstanding, OR if outstanding exists AND selection is made */}
-                {saleAmount && saleCalculations && 
-                 (saleCalculations.outstanding <= 0 || deductOutstanding !== undefined) && (
-                  <div className="mt-4 rounded-md border border-gray-200 bg-slate-50 p-3 text-xs">
-                    <div className="flex justify-between py-1">
-                      <span className="">Sale Amount:</span>
-                      <span className="font-semibold">
-                        {formatCurrency(parseFloat(saleAmount), currencyCode)}
-                      </span>
-                    </div>
-                    {deductOutstanding === true && saleCalculations.outstanding > 0 && (
-                      <div className="flex justify-between py-1 text-rose-600">
-                        <span>Outstanding:</span>
-                        <span>
+                {/* Calculation Summary */}
+                {saleAmount && saleCalculations && (
+                    <div className="mt-4 rounded-md border border-gray-200 bg-slate-50 p-3 text-xs">
+                      <div className="flex justify-between py-1">
+                        <span className="">Sale Amount:</span>
+                        <span className="font-semibold">
+                          {formatCurrency(parseFloat(saleAmount), currencyCode)}
+                        </span>
+                      </div>
+                    
+                     
+                      <div className="flex justify-between py-1 pt-2">
+                        <span className="">Project Amount:</span>
+                        <span className="text-rose-600">
                           -{' '}
                           {formatCurrency(
-                            saleCalculations.outstanding,
+                            saleCalculations.projectAmount,
                             currencyCode
                           )}
                         </span>
                       </div>
-                    )}
-                    {deductOutstanding === true && (
-                      <div className="flex justify-between border-b border-gray-200 py-1">
-                        <span className="">Intermediate:</span>
-                        <span className="font-semibold">
+                      <div className="flex justify-between py-1 font-bold">
+                        <span>Gross Profit:</span>
+                        <span
+                          className={
+                            saleCalculations.grossProfit >= 0
+                              ? 'text-emerald-600'
+                              : 'text-red-600'
+                          }
+                        >
                           {formatCurrency(
-                            saleCalculations.intermediate,
+                            saleCalculations.grossProfit,
                             currencyCode
                           )}
                         </span>
                       </div>
-                    )}
-                    <div className="flex justify-between py-1 pt-2">
-                      <span className="">Total Investment:</span>
-                      <span className="text-rose-600">
-                        -{' '}
-                        {formatCurrency(
-                          saleCalculations.totalPaid,
-                          currencyCode
-                        )}
-                      </span>
+                      <div className="flex justify-between py-1">
+                        <span className="">
+                          Admin Fee ({investment.adminCost}%):
+                        </span>
+                        <span>
+                          {formatCurrency(
+                            saleCalculations.adminFee,
+                            currencyCode
+                          )}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex justify-between border-t border-gray-200 py-1 pt-2 font-bold">
+                        <span>Net Distributable:</span>
+                        <span className="text-emerald-600">
+                          {formatCurrency(
+                            saleCalculations.netProfit,
+                            currencyCode
+                          )}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between py-1 font-bold">
-                      <span>Gross Profit:</span>
-                      <span
-                        className={
-                          saleCalculations.grossProfit >= 0
-                            ? 'text-emerald-600'
-                            : 'text-red-600'
-                        }
-                      >
-                        {formatCurrency(
-                          saleCalculations.grossProfit,
-                          currencyCode
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between py-1">
-                      <span className="">
-                        Admin Fee ({investment.adminCost}%):
-                      </span>
-                      <span>
-                        {formatCurrency(
-                          saleCalculations.adminFee,
-                          currencyCode
-                        )}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex justify-between border-t border-gray-200 py-1 pt-2 font-bold">
-                      <span>Net Distributable:</span>
-                      <span className="text-emerald-600">
-                        {formatCurrency(
-                          saleCalculations.netProfit,
-                          currencyCode
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                  )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsSaleOpen(false)}>
@@ -994,11 +934,7 @@ export default function InvestmentManagementPage() {
                 <Button
                   className="bg-orange-500 hover:bg-orange-600"
                   onClick={handleRecordSale}
-                  disabled={
-                    isSubmitting || 
-                    !saleAmount || 
-                    (saleCalculations?.outstanding > 0 && deductOutstanding === undefined)
-                  }
+                  disabled={isSubmitting || !saleAmount}
                 >
                   Submit
                 </Button>
@@ -1032,15 +968,16 @@ export default function InvestmentManagementPage() {
                 <TableHeader className="">
                   <TableRow className="text-xs">
                     <TableHead className="font-semibold">Name</TableHead>
+                    <TableHead className="font-semibold text-center">Invested Amount</TableHead>
                     <TableHead className="text-center font-semibold">
                       Share
                     </TableHead>
                     <TableHead className="text-center font-semibold">
                       Agent Commission
                     </TableHead>
-                    <TableHead className="text-center font-semibold">
+                    {/* <TableHead className="text-center font-semibold">
                       Installment Amount
-                    </TableHead>
+                    </TableHead> */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1060,12 +997,16 @@ export default function InvestmentManagementPage() {
                     participants.map((p) => (
                       <TableRow key={p._id} className="text-xs">
                         <TableCell>
+                          <div className='flex gap-3'>
+
                           <div className="font-medium">
                             {p.investorId?.name || 'Unknown'}
                           </div>
-                          <div className="text-[10px] ">
-                            {formatCurrency(p.amount, currencyCode)}
+                         
                           </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {formatCurrency(p.amount, currencyCode)}
                         </TableCell>
                         <TableCell className="text-center">
                           {p.projectShare?.toFixed(2)}%
@@ -1083,14 +1024,17 @@ export default function InvestmentManagementPage() {
                             </Button>
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">
+                        {/* <TableCell className="text-center">
                           {investment.installmentNumber > 0
                             ? formatCurrency(
-                                p.amount / investment.installmentNumber,
+                                (((investment.projectAmount ?? 0) -
+                                  (investment.totalAmountPaid ?? 0)) *
+                                  (p.projectShare / 100)) /
+                                  investment.installmentNumber,
                                 currencyCode
                               )
                             : '—'}
-                        </TableCell>
+                        </TableCell> */}
                       </TableRow>
                     ))
                   )}
@@ -1099,7 +1043,7 @@ export default function InvestmentManagementPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* <Card>
             <CardHeader className=" p-4 pb-0">
               <CardTitle className="flex items-center gap-2 text-base">
                 Installment Status
@@ -1117,10 +1061,10 @@ export default function InvestmentManagementPage() {
                         Installment Paid
                       </TableHead>
                       <TableHead className="text-right text-xs font-semibold">
-                       Total Paid
+                        Total Paid
                       </TableHead>
                       <TableHead className="text-right text-xs font-semibold">
-                       Total Due
+                        Total Due
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1155,8 +1099,7 @@ export default function InvestmentManagementPage() {
                             {p.investorId?.name || 'Unknown'}
                           </TableCell>
                           <TableCell className="text-center text-xs font-semibold ">
-                              {p.installmentNumber}
-                            
+                            {p.installmentNumber}
                           </TableCell>
                           <TableCell className="text-right text-xs font-semibold text-emerald-600">
                             {formatCurrency(
@@ -1166,7 +1109,9 @@ export default function InvestmentManagementPage() {
                           </TableCell>
                           <TableCell className="text-right text-xs font-semibold text-rose-600">
                             {formatCurrency(
-                              (p.amount ?? 0) - (p.installmentPaidAmount ?? 0),
+                              ((investment.projectAmount ?? 0) -
+                                (investment.totalAmountPaid ?? 0)) *
+                                (p.projectShare / 100),
                               currencyCode
                             )}
                           </TableCell>
@@ -1177,11 +1122,13 @@ export default function InvestmentManagementPage() {
                 </Table>
               </>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         {/* === COLUMN 2: Financial Overview (3 Columns) === */}
         <div className="space-y-4 lg:col-span-5">
+         
+
           <Card className="border-none bg-slate-900 text-white shadow-lg">
             <CardContent className="p-5">
               <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
@@ -1256,18 +1203,14 @@ export default function InvestmentManagementPage() {
           {/* Profit Distribution */}
           <Card>
             <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-sm flex flex-row items-center justify-between">
-                <span>
-
-                Latest Profit Distribution
-                </span>
-                 {latestDistribution && (
-                <CardDescription className="text-xs font-semibold text-black">
-                  Last sale: {formatDate(latestDistribution.date)}
-                </CardDescription>
-              )}
+              <CardTitle className="flex flex-row items-center justify-between text-sm">
+                <span>Latest Profit Distribution</span>
+                {latestDistribution && (
+                  <CardDescription className="text-xs font-semibold text-black">
+                    Last sale: {formatDate(latestDistribution.date)}
+                  </CardDescription>
+                )}
               </CardTitle>
-             
             </CardHeader>
             <CardContent className="space-y-2 p-4 pt-0">
               {!latestDistribution ? (
@@ -1280,7 +1223,9 @@ export default function InvestmentManagementPage() {
                     <TableHeader>
                       <TableRow className="text-xs">
                         <TableHead className="h-8">Investor</TableHead>
-                        <TableHead className="h-8 text-right">Total Paid</TableHead>
+                        <TableHead className="h-8 text-right">
+                          Total Paid
+                        </TableHead>
                         <TableHead className="h-8 text-right">Profit</TableHead>
                         <TableHead className="h-8 text-right">Total</TableHead>
                         <TableHead className="h-8 text-right">Gain</TableHead>
@@ -1303,13 +1248,16 @@ export default function InvestmentManagementPage() {
                               {formatCurrency(p.amount, currencyCode)}
                             </TableCell> */}
                             <TableCell className="p-2 text-right">
-                              {formatCurrency(p.totalPaid, currencyCode)}
+                              {formatCurrency(p.amount, currencyCode)}
                             </TableCell>
                             <TableCell className="p-2 text-right font-bold text-emerald-600">
                               {formatCurrency(profitAmount, currencyCode)}
                             </TableCell>
                             <TableCell className="p-2 text-right font-bold text-orange-600">
-                              {formatCurrency(p.totalPaid+profitAmount, currencyCode)}
+                              {formatCurrency(
+                                p.amount + profitAmount,
+                                currencyCode
+                              )}
                             </TableCell>
                             <TableCell className="p-2 text-right font-bold text-blue-600">
                               {profitGainPercent.toFixed(2)}%
@@ -1364,7 +1312,6 @@ export default function InvestmentManagementPage() {
                     startDate={historyStartDate}
                     endDate={historyEndDate}
                     onChange={(update) => setDateRange(update)}
-                    
                     placeholderText="Start & end date"
                     className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-theme/20"
                   />
